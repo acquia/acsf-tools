@@ -1,0 +1,7 @@
+rest_api_user: 'user.name'
+rest_api_key: 'api_key_here'
+rest_factories:
+  dev: ''
+  test: ''
+  prod: ''
+subdomain_pattern: '{subdomain}-{env}'
