@@ -2,6 +2,11 @@
 
 ## Summary: 
 
+This project contains a set of drush scripts designed to ease administering an Acquia Cloud Site Factory multisite 
+platform. While Drush provides many utilities to aid generally in Drupal administraton, multsite in general and ACSF in
+particular adds a lot of complexity when managing multiple sites that live in a shared codebase. These tools merge
+ACSF multisites concepts with the ease of Drush-based administration.
+
 ## Install and Configuration:
 
 #### Install
@@ -9,12 +14,13 @@
 For simpler sites with a single developer or very small teams, you can just place this directory in your users' drush
 directory (e.g., ~/.drush).
 
-For larger teams, place this in the root of your project repo. This repository is intended to be checked into a project
-repository. Our desired future state is for this to be managed as a composer package.
+For larger teams, place this in the root of your project repo. This repository is intended to be checked into version
+control, i.e. Github or Bitbucket. Our desired future state is for this to be managed as a composer package.
 
 #### Configuration
 
-Make a copy of acsf_tools_config.default.yml and rename it to acsf_tools_config.yml. Replace the following values:
+Rename acsf_tools_config.default.yml as acsf_tools_config.yml and save it in the same directory. Replace the following 
+values:
 
 * Rest API User: This is your Factory username, which is displayed in the header after logging into your Factory.
 * Rest API Key: This is your Factory REST API key. After logging into the Factory, click on your username, then the 
@@ -24,8 +30,8 @@ Make a copy of acsf_tools_config.default.yml and rename it to acsf_tools_config.
 a custom subdomain pattern. E.g., 'foo-dev.coolsites.com', where '{subdomain}-{env}' is the default.
 
 **Note**: The acsf_tools_config file is deliberately ignored via .gitignore. The idea is that most of these utility
-scripts should be ran by a platform admin with the appropriate permissions on their local machines. You should
-not be committing API credentials to your repository.
+scripts should only be ran by a platform admin with the appropriate permissions on their local machines. You should
+_not be committing API credentials to your repository_.
 
 ## Tools:
 
@@ -44,16 +50,17 @@ will create a backup of all sites in your dev factory. You can get a list of sit
 
 #### Content Staging Deploy
 
-__acsf-tools-content-staging-deploy (sfdb):__ This command will begin a content staging deploy from your Production
+__acsf-tools-content-staging-deploy (sfst):__ This command will begin a content staging deploy from your Production
 factory down to one of the lower environments, i.e., dev or test. You can stage either a single site, a list of sites,
-or all sites. 
+or all sites. This is conceptually the same process as dragging your database and files from Production to Dev/Test in 
+Acquia Cloud Enterprise/Professional (ACE/ACP), only the multisite equivalent for ACSF.
 
-**NOTE/WARNING**: Content staging deploys will overwrite the current state of the lower environment. For example,
-if you are staging the production sites to the development server, this is will overwrite the databases that are
-currently running on the dev server with the contents of the production databases. Also note, if you are only 
-staging a list of sites, this will replace the currently deployed sites in that environment with the sites selected in 
-this command. If the list of sites you're staging is _different_ from the sites currently deployed in that environment,
-the sites not included in your staging deploy will essentially be deleted in that environment.
+**NOTE/WARNING**: Content staging deploys will overwrite the current state of all sites in the lower environment. For 
+example, if you are staging the production sites to the development server, this is will overwrite the databases that 
+are currently running on the dev server with the contents of the production databases. Also note, if you are only 
+staging a defined list of sites, this will replace the currently deployed sites in that environment with the sites 
+selected in this command. If the list of sites you're staging is _different_ from the sites currently deployed in 
+that environment, the sites not included in your staging deploy will essentially be deleted in that environment.
 
 #### Custom Domains Staging
 
@@ -71,7 +78,7 @@ actually present in that environment.
 
 #### ACSF Tools
 
-**Note**: The commands in this section are ran remotely on a factory by alias, and do not require REST API 
+**Note**: The commands in this section are ran remotely on a factory by remote drush alias, and do not require REST API 
 authentication. E.g., `drush @coolsites.01dev sfl` will list all the sites in the development factory for the 'coolsite' 
 subscription. This is the one exception to the 'always run local' rule. These commands do require SSH access via drush,
 same as any other drush remote execution script.

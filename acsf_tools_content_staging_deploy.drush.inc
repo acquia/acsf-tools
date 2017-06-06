@@ -21,7 +21,7 @@ function acsf_tools_content_staging_deploy_drush_command() {
       'Multiple sites' => 'drush @mysite.local acsf-content-staging-deploy dev sitename1,sitename2',
       'All sites' => 'drush @mysite.local acsf-content-staging-deploy dev all'
     ),
-    'aliases' => ['sfdp'],
+    'aliases' => ['sfst'],
   );
 
   return $items;

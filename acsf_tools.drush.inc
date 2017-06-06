@@ -236,7 +236,7 @@ function acsf_tools_curl_wrapper($username, $password, $url, $data = array()) {
   curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
   if (!empty($data)) {
     curl_setopt($ch, CURLOPT_POST, count($data));
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
   }
   $result = json_decode(curl_exec($ch));
   curl_close($ch);
