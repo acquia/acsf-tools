@@ -1,3 +1,4 @@
+site_id: ''
 rest_api_user: 'user.name'
 rest_api_key: 'api_key_here'
 rest_factories:
@@ -5,3 +6,5 @@ rest_factories:
   test: ''
   prod: ''
 subdomain_pattern: '{subdomain}-{env}'
+prod_web: ''
+dev_web: ''
