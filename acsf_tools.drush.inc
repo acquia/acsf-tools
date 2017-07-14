@@ -182,6 +182,7 @@ function acsf_tools_get_rest_config() {
   }
 
   $config = new stdClass();
+  $config->site_id = $yaml['site_id'];
   $config->username = $yaml['rest_api_user'];
   $config->password = $yaml['rest_api_key'];
   $config->prod_uri = $yaml['rest_factories']['prod'];
@@ -189,6 +190,8 @@ function acsf_tools_get_rest_config() {
   $config->dev_uri = $yaml['rest_factories']['dev'];
   $config->root_domain = $yaml['root_domain'];
   $config->subdomain_pattern = $yaml['subdomain_pattern'];
+  $config->prod_web = $yaml['prod_web'];
+  $config->dev_web = $yaml['dev_web'];
 
   return $config;
 }
