@@ -11,29 +11,37 @@ ACSF multisites concepts with the ease of Drush-based administration.
 
 #### Install
 
-For simpler sites with a single developer or very small teams, you can just place this directory in your users' drush
+For simpler projects with a single developer or very small teams, you can just clone this repository in your users' drush
 directory (e.g., ~/.drush).
 
-For larger teams, place this in the root of your project repo. This repository is intended to be checked into version
-control, i.e. Github or Bitbucket. Our desired future state is for this to be managed as a composer package.
+For larger teams, we recommend adding this project as a composer library, e.g. `composer require drupal/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
 
 #### Configuration
 
 Rename acsf_tools_config.default.yml as acsf_tools_config.yml and save it in the same directory. Replace the following 
 values:
 
+* Site ID: This is the ID of your Factory. The easiest place to find this string is in the URL of your production factory. It is the subdomain immediately succeeding 'www' in the URL. E.g., for "www.demo.acquia-cc.com", the Site ID is 'demo'. 
 * Rest API User: This is your Factory username, which is displayed in the header after logging into your Factory.
 * Rest API Key: This is your Factory REST API key. After logging into the Factory, click on your username, then the 
 'API key' tab.
 * Rest Factories: This is an array of the URLs for your Prod, Test, and Dev factories.
 * Subdomain pattern: An optional config, used when staging custom domains from production, that allows you to define
 a custom subdomain pattern. E.g., 'foo-dev.coolsites.com', where '{subdomain}-{env}' is the default.
+* Prod Web: The server ID for your main production server. This is found in your cloud.acquia.com dashboard, under the servers tab. E.g., 'web-1234'.
+* Dev Web: The server ID for your development server. This is found in your cloud.acquia.com dashboard, under the servers tab. E.g., 'web-1234'.
 
 **Note**: The acsf_tools_config file is deliberately ignored via .gitignore. The idea is that most of these utility
 scripts should only be ran by a platform admin with the appropriate permissions on their local machines. You should
 _not be committing API credentials to your repository_.
 
 ## Tools:
+
+#### Generate Drush Aliases
+
+__acsf-tools-generate-aliases (sfa):__ This command will query the ACSF REST API and store a list of all of the sites in
+your factory locally. It will then move a dynamic alias template into your drush folder. The template will load the list
+of sites when the drush cache is cleared and make a prod/test/dev alias available for every site in your factory. After running this command the first time, you should check in the generated '*.aliases.drushrc.php' (where * is your ACSF site ID) file to your repository. _You will not need to check in anything else into your repo ever again, and can refresh the site list locally anytime you create/deploy a new site in ACSF_.
 
 #### Get Deployed Tag
 
