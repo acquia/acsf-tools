@@ -54,7 +54,7 @@ function drush_acsf_tools_generate_aliases() {
   // Put our aliases file in ../site-aliases.
   $aliases_template = $realpath  . '/acsf_tools.aliases.drushrc.php';
   $new_alias_filename = $config->site_id . '.aliases.drushrc.php';
-  $new_file = $realpath . '/../site-aliases/' . $new_alias_filename;
+  $new_file = $realpath . '/../../site-aliases/' . $new_alias_filename;
   if (!file_exists($new_file) ) {
     copy($aliases_template, $new_file);
   }

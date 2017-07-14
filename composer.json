@@ -1,0 +1,16 @@
+{
+  "name": "msherron/acsf-tools",
+  "description": "Drush powered command line tools for working with Acquia Cloud Site Factory.",
+  "type": "drupal-drush",
+  "homepage": "https://github.com/msherron/acsf-tools",
+  "authors": [
+    {
+      "name": "Michael Sherron (msherron)",
+      "homepage": "https://www.drupal.org/u/msherron",
+      "role": "Maintainer"
+    }
+  ],
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

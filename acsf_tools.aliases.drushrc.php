@@ -6,7 +6,7 @@ $loader->register();
 
 use Symfony\Component\Yaml\Yaml;
 
-$realpath = realpath(__DIR__ . '/../acsf-tools');
+$realpath = realpath(__DIR__ . '/../contrib/acsf-tools');
 $yaml = Yaml::parse(file_get_contents($realpath . '/acsf_tools_config.yml'));
 
 // Add a site ID and configure the sites and environment names to
