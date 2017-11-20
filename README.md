@@ -14,7 +14,7 @@ ACSF multisites concepts with the ease of Drush-based administration.
 For simpler projects with a single developer or very small teams, you can just clone this repository in your users' drush
 directory (e.g., ~/.drush).
 
-For larger teams, we recommend adding this project as a composer library, e.g. `composer require acsf/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
+For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
 
 #### Configuration
 
