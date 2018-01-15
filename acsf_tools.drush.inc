@@ -124,10 +124,10 @@ function drush_acsf_tools_info() {
     drush_log("\nFailed to retrieve the list of sites of the factory.", 'error');
   }
   
-  drush_print("\nID\t\tName\t\tDB Name\t\t\t\tDomain");
+  drush_print("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
 
   foreach ($sites as $key => $site) {
-    drush_print("\n$key\t\t" . $site['conf']['gname'] . "\t\t" . $site['conf']['db_name'] . "\t\t" . $site['domains'][0]);
+    drush_print("$key\t\t" . $site['conf']['gname'] . "\t\t" . $site['conf']['db_name'] . "\t\t" . $site['domains'][0]);
   }
 }
 
