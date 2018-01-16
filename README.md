@@ -93,6 +93,8 @@ same as any other drush remote execution script.
 
 * __acsf-tools-list (sfl):__ This command will list the details (e.g., name, url, aliases) for all sites in your 
 factory.
+* __acsf-tools-info (sfi):__ This command will list site specific information (e.g., ID, Name, DB Name, Domain) for all sites in your 
+factory.
 * __acsf-tools-ml (sfml):__ This command will run any drush command against *all* sites in your factory. E.g., 
 `drush @coolsites.01dev sfml st` will run the drush status command against all sites in your factory and return the
 output. This is useful for disabling clearing cache, or disabling a single module for every site in your factory.
