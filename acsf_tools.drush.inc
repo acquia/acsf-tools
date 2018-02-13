@@ -26,6 +26,15 @@ function acsf_tools_drush_command() {
     'aliases' => ['sfl'],
   );
 
+  $items['acsf-tools-info'] = array(
+    'description' => dt('List some infos of the sitesy.'),
+    'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
+    'examples' => array(
+      'drush acsf-tools-info' => 'Get more details for all the sites of the factory.',
+    ),
+    'aliases' => ['sfi'],
+  );
+
   $items['acsf-tools-ml'] = array(
     'description' => dt('Runs the passed drush command against all the sites of the factory (ml stands for multiple -l option).'),
     'allow-additional-options' => TRUE,
@@ -80,6 +89,45 @@ function drush_acsf_tools_list() {
       // Print attributes.
       _drush_acsf_tools_recursive_print($details, 2);
     }
+  }
+}
+
+/**
+ * Action callback for acsf-tools-info command.
+ */
+function drush_acsf_tools_info() {
+  // Look for list of sites and loop over it.
+  if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
+    // Acquire sites info.
+    $sites = array();
+    foreach ($map['sites'] as $domain => $site_details) {
+      $conf = $site_details['conf'];
+      
+      // Include settings file to get DB name. To save rescources, without bootsrtapping Drupal
+      $settings_inc = "/var/www/site-php/{$_ENV['AH_SITE_GROUP']}.{$_ENV['AH_SITE_ENVIRONMENT']}/D7-{$_ENV['AH_SITE_ENVIRONMENT']}-" . $conf['gardens_db_name'] . "-settings.inc";
+      $file = file_get_contents($settings_inc);
+      $need= "\"database\" => \"";
+      $need2= "\",";
+      // Find db name
+      $dpos = strpos($file, $need);
+      $db_name = substr($file, ($dpos + strlen($need)) );
+      $upos = strpos($db_name, $need2);
+      // Isolate db name
+      $db_name = substr($db_name, 0, $upos );
+
+      // Re-structure  site
+      $sites[$conf['gardens_site_id']]['domains'][] = $domain;
+      $sites[$conf['gardens_site_id']]['conf'] = array('db_name' => $db_name, 'gname' => $conf['gardens_db_name'], );
+    }
+  }
+  else {  
+    drush_log("\nFailed to retrieve the list of sites of the factory.", 'error');
+  }
+  
+  drush_print("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
+
+  foreach ($sites as $key => $site) {
+    drush_print("$key\t\t" . $site['conf']['gname'] . "\t\t" . $site['conf']['db_name'] . "\t\t" . $site['domains'][0]);
   }
 }
 
