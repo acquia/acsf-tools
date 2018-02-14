@@ -27,7 +27,7 @@ function acsf_tools_drush_command() {
   );
 
   $items['acsf-tools-info'] = array(
-    'description' => dt('List some infos of the sitesy.'),
+    'description' => dt('List details for each site in the Factory.'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
     'examples' => array(
       'drush acsf-tools-info' => 'Get more details for all the sites of the factory.',
