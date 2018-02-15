@@ -19,6 +19,6 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "symfony/yaml": "^4.0"
+    "symfony/yaml": "^3.0"
   }
 }
