@@ -25,7 +25,7 @@ values:
 * Rest API User: This is your Factory username, which is displayed in the header after logging into your Factory.
 * Rest API Key: This is your Factory REST API key. After logging into the Factory, click on your username, then the 
 'API key' tab.
-* Rest Factories: This is an array of the URLs for your Prod, Test, and Dev factories.
+* Rest Factories: This is an array of the URLs for your Prod, Test, and Dev factories. This should include a leading 'https://' as the protocol, and should _not_ include a trailing slash.
 * Subdomain pattern: An optional config, used when staging custom domains from production, that allows you to define
 a custom subdomain pattern. E.g., 'foo-dev.coolsites.com', where '{subdomain}-{env}' is the default.
 * Prod Web: The server ID for your main production server. This is found in your cloud.acquia.com dashboard, under the servers tab. E.g., 'web-1234'.
