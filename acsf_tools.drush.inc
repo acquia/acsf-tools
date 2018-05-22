@@ -65,12 +65,14 @@ function acsf_tools_drush_command() {
     'description' => dt('Restore a DB dump for each site of the factory.'),
     'options' => [
       'source-folder' => 'The folder in which the dumps will be picked-up. Default to ~/drush-backups.',
+      'gzip' => 'Indicate the dump have been compressed using gzip. See acsf-tools-dump options.',
     ],
     'allow-additional-options' => TRUE,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
     'examples' => [
       'drush8 acsf-tools-restore' => 'Restore DB dumps for the sites of the factory. Default source folder will be used.',
-      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.'
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip' => 'Save as above but using compressed DB dumps.',
     ],
     'aliases' => ['sfre'],
   ];
@@ -243,10 +245,12 @@ function drush_acsf_tools_restore() {
   }
 
   if (!is_dir($source_folder)) {
-    // Source folder does not exist..
+    // Source folder does not exist.
     drush_log("\nSource folder $source_folder does not exist.", 'error');
     return;
   }
+
+  $gzip = drush_get_option('gzip', FALSE);
 
   // Look for list of sites and loop over it.
   if ($sites = _drush_acsf_tools_get_sites()) {
@@ -256,6 +260,7 @@ function drush_acsf_tools_restore() {
     unset($options['php']);
     unset($options['php-options']);
     unset($options['source-folder']);
+    unset($options['gzip']);
 
     foreach ($sites as $details) {
       $domain = $details['domains'][0];
@@ -263,9 +268,19 @@ function drush_acsf_tools_restore() {
 
       $source_file = $source_folder . '/' . $prefix . '.sql';
 
+      if ($gzip) {
+        $source_file .= '.gz';
+      }
+
       if (!file_exists($source_file)) {
         drush_log("\n => No source file $source_file for $prefix site.", "error");
         continue;
+      }
+
+      // Temporary decompressed the dump to be used with drush sql-cli.
+      if ($gzip) {
+        drush_shell_exec('gunzip -k ' . $source_file);
+        $source_file = substr($source_file, 0, -3);
       }
 
       $command_drop = 'sql-drop';
@@ -274,6 +289,11 @@ function drush_acsf_tools_restore() {
       drush_log("\n=> Dropping and restoring database on $domain", 'ok');
       drush_invoke_process('@self', $command_drop, $arguments, $options + ['l' => $domain, 'y']);
       drush_invoke_process('@self', $command_cli, $arguments, $options + ['l' => $domain]);
+
+      // Remove the temporary decompressed dump
+      if ($gzip) {
+        drush_shell_exec('rm ' . $source_file);
+      }
     }
   }
 }
