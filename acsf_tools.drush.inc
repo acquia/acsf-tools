@@ -72,7 +72,7 @@ function acsf_tools_drush_command() {
     'examples' => [
       'drush8 acsf-tools-restore' => 'Restore DB dumps for the sites of the factory. Default source folder will be used.',
       'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
-      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip' => 'Save as above but using compressed DB dumps.',
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip' => 'Same as above but using compressed DB dumps.',
     ],
     'aliases' => ['sfre'],
   ];
