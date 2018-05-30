@@ -5,6 +5,7 @@ namespace Drush\Commands;
 use Drush\Commands\DrushCommands;
 use Drush\Exceptions\UserAbortException;
 use Drupal\acsf_tools\AcsfToolsServiceProvider;
+use Drupal\acsf_tools\AcsfToolsUtils;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -34,7 +35,7 @@ class AcsfToolsCommands extends DrushCommands {
   public function sitesList(array $options = ['fields' => null]) {
 
     // Look for list of sites and loop over it.
-    if ($sites = $this->getSites()) {
+    if ($sites = AcsfToolsUtils::getSites()) {
       // Render the info.
       $fields = $options['fields'];
       if (isset($fields)) {
@@ -169,8 +170,10 @@ class AcsfToolsCommands extends DrushCommands {
       $result_folder = '~/drush-backups';
     }
 
+    $utils = new AcsfToolsUtils();
+
     // Look for list of sites and loop over it.
-    if ($sites = $this->getSites()) {
+    if ($sites = $utils->getSites()) {
       $arguments = drush_get_arguments();
       $command = 'sql-dump';
 
@@ -191,32 +194,6 @@ class AcsfToolsCommands extends DrushCommands {
         drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
       }
     }
-  }
-
-  /**
-   * Utility function to retrieve the list of sites in a given Factory.
-   *
-   * @return array|bool
-   */
-  private function getSites() {
-    $sites = FALSE;
-
-    // Look for list of sites and loop over it.
-    if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
-      // Acquire sites info.
-      $sites = array();
-      foreach ($map['sites'] as $domain => $site_details) {
-        if (!isset($sites[$site_details['name']])) {
-          $sites[$site_details['name']] = $site_details;
-        }
-        $sites[$site_details['name']]['domains'][] = $domain;
-      }
-    }
-    else {
-      $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
-    }
-
-    return $sites;
   }
 
   /**
