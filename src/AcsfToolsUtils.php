@@ -14,8 +14,8 @@ class AcsfToolsUtils {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
-
+	public function utils() {
+	  return this;
 	}
 
 	/**

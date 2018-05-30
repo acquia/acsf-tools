@@ -13,6 +13,26 @@ use Symfony\Component\Filesystem\Filesystem;
  */
 class AcsfToolsCommands extends DrushCommands {
 
+
+  protected $utils;
+
+  /**
+   * @hook pre-command *
+   */
+  public function setupAcsfToolsUtils()
+  {
+    //$this->addServicesToContainer();
+    $this->utils = \Drupal::service('acsf_tools.utils')->utils();
+  }
+
+  /**
+   * This is necessary to define our own services.
+   */
+  protected function addServicesToContainer() {
+    \Drupal::service('kernel')->addServiceModifier(new AcsfToolsServiceProvider());
+    \Drupal::service('kernel')->rebuildContainer();
+  }
+
   /**
    * List the sites of the factory.
    *
@@ -35,7 +55,7 @@ class AcsfToolsCommands extends DrushCommands {
   public function sitesList(array $options = ['fields' => null]) {
 
     // Look for list of sites and loop over it.
-    if ($sites = AcsfToolsUtils::getSites()) {
+    if ($sites = $this->utils) {
       // Render the info.
       $fields = $options['fields'];
       if (isset($fields)) {

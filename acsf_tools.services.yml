@@ -1,1 +1,3 @@
-services: { }
+services:
+  acsf_tools.utils:
+    class: \Drupal\acsf_tools\AcsfToolsUtils
