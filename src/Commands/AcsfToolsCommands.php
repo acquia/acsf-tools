@@ -3,7 +3,6 @@
 namespace Drush\Commands;
 
 use Drush\Commands\DrushCommands;
-use Drush\Exceptions\UserAbortException;
 use Drupal\acsf_tools\AcsfToolsServiceProvider;
 use Drupal\acsf_tools\AcsfToolsUtils;
 use Symfony\Component\Filesystem\Filesystem;
@@ -21,8 +20,8 @@ class AcsfToolsCommands extends DrushCommands {
    */
   public function setupAcsfToolsUtils()
   {
-    //$this->addServicesToContainer();
-    $this->utils = \Drupal::service('acsf_tools.utils')->utils();
+    $this->addServicesToContainer();
+    $this->utils = \Drupal::service('acsf_tools.utils')->utils($this);
   }
 
   /**
@@ -55,7 +54,8 @@ class AcsfToolsCommands extends DrushCommands {
   public function sitesList(array $options = ['fields' => null]) {
 
     // Look for list of sites and loop over it.
-    if ($sites = $this->utils) {
+    $utils = $this->utils;
+    if ($sites = $utils->getSites()) {
       // Render the info.
       $fields = $options['fields'];
       if (isset($fields)) {
@@ -73,7 +73,7 @@ class AcsfToolsCommands extends DrushCommands {
         }
 
         // Print attributes.
-        $this->recursivePrint($details, 2);
+        $utils->recursivePrint($details, 2);
       }
     }
   }
@@ -147,7 +147,8 @@ class AcsfToolsCommands extends DrushCommands {
     $args = explode(" ", $args);
 
     // Look for list of sites and loop over it.
-    if ($sites = $this->getSites()) {
+    $utils = $this->utils;
+    if ($sites = $utils->getSites()) {
 
       $processed = array();
       foreach ($sites as $details) {
@@ -179,8 +180,10 @@ class AcsfToolsCommands extends DrushCommands {
    */
   public function dbDump(array $options = ['result-folder' => null]) {
 
+    $utils = $this->utils;
+
     // Ask for confirmation before running the command.
-    if (!$this->promptConfirm()) {
+    if (!$utils->promptConfirm()) {
       return;
     }
 
@@ -189,8 +192,6 @@ class AcsfToolsCommands extends DrushCommands {
     if (!isset($result_folder)) {
       $result_folder = '~/drush-backups';
     }
-
-    $utils = new AcsfToolsUtils();
 
     // Look for list of sites and loop over it.
     if ($sites = $utils->getSites()) {
@@ -214,43 +215,5 @@ class AcsfToolsCommands extends DrushCommands {
         drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
       }
     }
-  }
-
-  /**
-   * Utility function to recursively pretty print arrays for drush.
-   *
-   * @param $variable
-   * @param $indent
-   */
-  private function recursivePrint($variable, $indent) {
-
-    $tab = str_repeat(' ', $indent);
-
-    foreach ($variable as $key => $value) {
-      if (!is_array($value)) {
-        $this->output()->writeln($tab . $key . ': ' . $value);
-      }
-      else {
-        $this->output()->writeln($tab . $key . ':');
-        $this->recursivePrint($value, $indent + 2);
-      }
-    }
-  }
-
-  /**
-   * Utility function to prompt the user for confirmation they want to run a
-   * command against all sites in their Factory.
-   * @return bool
-   */
-  private function promptConfirm() {
-
-    $this->output()->writeln(
-      dt('You are about to run a command on all the sites of your factory. 
-        Do you confirm you want to do that? If so, type \'yes\''));
-    if (!$this->io()->confirm(dt('Do you want to continue?'))) {
-      throw new UserAbortException();
-    }
-
-    return TRUE;
   }
 }
