@@ -1,10 +1,10 @@
 <?php
 
-namespace Drush\Commands;
+namespace Drush\Commands\acsf_tools;
 
 use Drush\Commands\DrushCommands;
-use Drupal\acsf_tools\AcsfToolsServiceProvider;
-use Drupal\acsf_tools\AcsfToolsUtils;
+use Drush\Commands\acsf_tools\AcsfToolsServiceProvider;
+use Drush\Commands\acsf_tools\AcsfToolsUtils;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -21,7 +21,8 @@ class AcsfToolsCommands extends DrushCommands {
   public function setupAcsfToolsUtils()
   {
     $this->addServicesToContainer();
-    $this->utils = \Drupal::service('acsf_tools.utils')->utils($this);
+    $this->utils = \Drupal::service('acsf_tools.utils');
+    $this->utils->setDrush($this);
   }
 
   /**
@@ -215,5 +216,34 @@ class AcsfToolsCommands extends DrushCommands {
         drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
       }
     }
+  }
+
+  /**
+   * Fetches and displays the currently deployed sites tag for a Factory.
+   *
+   * @command acsf:tools-get-deployed-tag   
+   *
+   * @bootstrap full
+   * @param $env
+   *   The environment whose tag we're requesting. I.e., dev, test, prod
+   * @usage drush @mysite.local acsf-get-deployed-tag dev
+   *
+   * @aliases sft,acsf-tools-get-deployed-tag
+   */
+  public function getDeployedTag($env) {
+
+    $utils = $this->utils;
+    
+    if (!in_array($env, array('dev','test','prod'))) {
+      $this->logger()->error('Invalid Factory environment.');
+      return false;
+    }
+
+    $config = $utils->getRestConfig();
+
+    $sites_url = $utils->getFactoryUrl($config, '/api/v1/vcs?type=sites', $env);
+
+    $response = $utils->curlWrapper($config->username, $config->password, $sites_url);
+    $this->output()->writeln($response->current);
   }
 }

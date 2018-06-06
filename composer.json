@@ -1,5 +1,5 @@
 {
-  "name": "acquia/acsf-tools",
+  "name": "acquia/acsf_tools",
   "description": "Drush powered command line tools for working with Acquia Cloud Site Factory.",
   "type": "drupal-drush",
   "homepage": "https://github.com/acquia/acsf-tools",
@@ -24,8 +24,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Drupal\\acsf_tools\\": "src/",
-      "Drush\\Commands\\": "src/Commands" 
+      "Drush\\Commands\\acsf_tools\\": "."
     }
   },
   "extra": {
