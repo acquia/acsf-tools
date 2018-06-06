@@ -1,0 +1,3 @@
+services:
+  acsf_tools.utils:
+    class: \Drush\Commands\acsf_tools\AcsfToolsUtils
