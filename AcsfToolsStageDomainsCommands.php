@@ -6,12 +6,12 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsCommands;
+use Drush\Commands\acsf_tools\AcsfToolsUtils;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsStageDomainsCommands extends AcsfToolsCommands {
+class AcsfToolsStageDomainsCommands extends AcsfToolsUtils {
 
   /**
    * Automatically stage the production Factories' vanity domains to a lower environment.
@@ -27,16 +27,14 @@ class AcsfToolsStageDomainsCommands extends AcsfToolsCommands {
    */
   public function stageDomains($env) {
 
-    $utils = $this->utils;
-
     if (!in_array($env, array('dev','test'))) {
       return $this->logger()->error('Invalid staging environment.');
     }
 
-    $config = $utils->getRestConfig();
+    $config = $this->getRestConfig();
 
     // Get Sites in the prod factory.
-    $sites = $utils->getRemoteSites($config, 'prod');
+    $sites = $this->getRemoteSites($config, 'prod');
 
     foreach ($sites as $site) {
 
@@ -53,8 +51,6 @@ class AcsfToolsStageDomainsCommands extends AcsfToolsCommands {
    */
   private function postVanityDomain($config, $site, $env) {
 
-    $utils = $this->utils;
-
     // Only do work if we detect there's a custom domain that needs staging.
     if ($stage_domain = $this->getStageDomain($config, $site, $env)) {
 
@@ -62,8 +58,8 @@ class AcsfToolsStageDomainsCommands extends AcsfToolsCommands {
       $data = array(
         'domain_name' => $stage_domain
       );
-      $post_domain_url = $utils->getFactoryUrl($config,"/api/v1/domains/$site->id/add", $env);
-      $result = $utils->curlWrapper($config->username, $config->password, $post_domain_url, $data);
+      $post_domain_url = $this->getFactoryUrl($config,"/api/v1/domains/$site->id/add", $env);
+      // $result = $this->curlWrapper($config->username, $config->password, $post_domain_url, $data);
 
       $this->output->writeln("$stage_domain set OK.");
     }
@@ -120,8 +116,8 @@ class AcsfToolsStageDomainsCommands extends AcsfToolsCommands {
    */
   private function getProdVanityDomainForSite($config, $site) {
 
-    $domain_url = $this->utils->getFactoryUrl($config,"/api/v1/domains/$site->id");
-    $result = $this->utils->curlWrapper($config->username, $config->password, $domain_url);
+    $domain_url = $this->getFactoryUrl($config,"/api/v1/domains/$site->id");
+    $result = $this->curlWrapper($config->username, $config->password, $domain_url);
 
     return $result->domains->custom_domains[0];
   }

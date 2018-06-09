@@ -6,12 +6,12 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsCommands;
+use Drush\Commands\acsf_tools\AcsfToolsUtils;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsGetDeployedTagCommands extends AcsfToolsCommands {
+class AcsfToolsGetDeployedTagCommands extends AcsfToolsUtils {
 
   /**
    * Fetches and displays the currently deployed sites tag for a Factory.
@@ -27,17 +27,15 @@ class AcsfToolsGetDeployedTagCommands extends AcsfToolsCommands {
    */
   public function getDeployedTag($env) {
 
-    $utils = $this->utils;
-
     if (!in_array($env, array('dev','test','prod'))) {
       return $this->logger()->error('Invalid Factory environment.');
     }
 
-    $config = $utils->getRestConfig();
+    $config = $this->getRestConfig();
 
-    $sites_url = $utils->getFactoryUrl($config, '/api/v1/vcs?type=sites', $env);
+    $sites_url = $this->getFactoryUrl($config, '/api/v1/vcs?type=sites', $env);
 
-    $response = $utils->curlWrapper($config->username, $config->password, $sites_url);
+    $response = $this->curlWrapper($config->username, $config->password, $sites_url);
     $this->output()->writeln($response->current);
   }
 }

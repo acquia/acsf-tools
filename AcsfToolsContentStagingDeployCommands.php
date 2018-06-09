@@ -6,18 +6,18 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsCommands;
+use Drush\Commands\acsf_tools\AcsfToolsUtils;
 use Drush\Exceptions\UserAbortException;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsContentStagingDeployCommands extends AcsfToolsCommands {
+class AcsfToolsContentStagingDeployCommands extends AcsfToolsUtils {
 
   /**
    * A command line utility for starting a Factory content staging deploy.
    *
-   * @command acsf:tools-content-staging-deploy
+   * @command acsf-tools:content-staging-deploy
    *
    * @bootstrap full
    * @param $env
@@ -35,8 +35,6 @@ class AcsfToolsContentStagingDeployCommands extends AcsfToolsCommands {
    */
   public function contentStagingDeploy($env, $sites) {
 
-    $utils = $this->utils;
-
     // Bail if an invalid staging environment.
     if (!in_array($env, array('dev','test'))) {
       return $this->logger()->error(dt('Invalid staging environment.'));
@@ -53,10 +51,10 @@ class AcsfToolsContentStagingDeployCommands extends AcsfToolsCommands {
       $stage_all_sites = TRUE;
     }
 
-    $config = $utils->getRestConfig();
+    $config = $this->getRestConfig();
 
     // Get a list of sites in the prod factory.
-    $prod_sites = $utils->getRemoteSites($config, 'prod');
+    $prod_sites = $this->getRemoteSites($config, 'prod');
 
     // Walk the prod list looking for the alias(es) the user specified.
     $to_stage = array();
@@ -88,7 +86,7 @@ class AcsfToolsContentStagingDeployCommands extends AcsfToolsCommands {
       'sites' => $to_stage,
     );
 
-    $staging_endpoint = $utils->getFactoryUrl($config, '/api/v1/stage');
+    $staging_endpoint = $this->getFactoryUrl($config, '/api/v1/stage');
 
     $result = $this->curlWrapper($config->username, $config->password, $staging_endpoint, $post_data);
     $this->output()->writeln($result->message);

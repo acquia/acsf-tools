@@ -6,35 +6,12 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\DrushCommands;
-use Drush\Commands\acsf_tools\AcsfToolsServiceProvider;
 use Drush\Commands\acsf_tools\AcsfToolsUtils;
-use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsCommands extends DrushCommands {
-
-  protected $utils;
-
-  /**
-   * @hook pre-command *
-   */
-  public function setupAcsfToolsUtils()
-  {
-    $this->addServicesToContainer();
-    $this->utils = \Drupal::service('acsf_tools.utils');
-    $this->utils->setDrush($this);
-  }
-
-  /**
-   * This is necessary to define our own services.
-   */
-  protected function addServicesToContainer() {
-    \Drupal::service('kernel')->addServiceModifier(new AcsfToolsServiceProvider());
-    \Drupal::service('kernel')->rebuildContainer();
-  }
+class AcsfToolsCommands extends AcsfToolsUtils {
 
   /**
    * List the sites of the factory.
@@ -58,8 +35,7 @@ class AcsfToolsCommands extends DrushCommands {
   public function sitesList(array $options = ['fields' => null]) {
 
     // Look for list of sites and loop over it.
-    $utils = $this->utils;
-    if ($sites = $utils->getSites()) {
+    if ($sites = $this->getSites()) {
       // Render the info.
       $fields = $options['fields'];
       if (isset($fields)) {
@@ -77,7 +53,7 @@ class AcsfToolsCommands extends DrushCommands {
         }
 
         // Print attributes.
-        $utils->recursivePrint($details, 2);
+        $this->recursivePrint($details, 2);
       }
     }
   }
@@ -94,6 +70,12 @@ class AcsfToolsCommands extends DrushCommands {
    * @aliases sfi,acsf-tools-info
    */
   public function sitesInfo() {
+
+    // Don't run locally.
+    if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
+      return FALSE;
+    }
+
     // Look for list of sites and loop over it.
     if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
       // Acquire sites info.
@@ -151,8 +133,7 @@ class AcsfToolsCommands extends DrushCommands {
     $args = explode(" ", $args);
 
     // Look for list of sites and loop over it.
-    $utils = $this->utils;
-    if ($sites = $utils->getSites()) {
+    if ($sites = $this->getSites()) {
 
       $processed = array();
       foreach ($sites as $details) {
@@ -184,10 +165,8 @@ class AcsfToolsCommands extends DrushCommands {
    */
   public function dbDump(array $options = ['result-folder' => null]) {
 
-    $utils = $this->utils;
-
     // Ask for confirmation before running the command.
-    if (!$utils->promptConfirm()) {
+    if (!$this->promptConfirm()) {
       return;
     }
 
@@ -198,7 +177,7 @@ class AcsfToolsCommands extends DrushCommands {
     }
 
     // Look for list of sites and loop over it.
-    if ($sites = $utils->getSites()) {
+    if ($sites = $this->getSites()) {
       $arguments = drush_get_arguments();
       $command = 'sql-dump';
 
@@ -241,10 +220,8 @@ class AcsfToolsCommands extends DrushCommands {
    */
   function dbRestore() {
 
-    $utils = $this->utils;
-
     // Ask for confirmation before running the command.
-    if (!$utils->promptConfirm()) {
+    if (!$this->promptConfirm()) {
       return false;
     }
 
