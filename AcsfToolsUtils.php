@@ -52,6 +52,18 @@ class AcsfToolsUtils extends DrushCommands {
   }
 
   /**
+   * Utility function to retrieve a list of sites remotely, via the API.
+   *
+   * @return array|bool
+   */
+  function getRemoteSites($config, $env = 'prod') {
+
+    // TODO: What happens when more than 100 sites? Implement paging.
+    $sites_url = $this->getFactoryUrl($config, '/api/v1/sites?limit=100', $env);
+    return $this->curlWrapper($config->username, $config->password, $sites_url)->sites;
+  }
+
+  /**
    * Utility function to prompt the user for confirmation they want to run a
    * command against all sites in their Factory.
    * @return bool
