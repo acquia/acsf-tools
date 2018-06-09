@@ -11,19 +11,6 @@ use Drush\Commands\DrushCommands;
 use Drush\Exceptions\UserAbortException;
 
 class AcsfToolsUtils extends DrushCommands {
-	
-  protected $drush;
-
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-    return $this;
-	}
-
-  public function setDrush($drushCommand) {
-    $this->drush = $drushCommand;
-  }
 
 	/**
    * Utility function to retrieve the list of sites in a given Factory.
@@ -32,6 +19,11 @@ class AcsfToolsUtils extends DrushCommands {
 	 */
   public function getSites() {
     $sites = FALSE;
+
+    // Don't run locally.
+    if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
+      return FALSE;
+    }
 
     // Look for list of sites and loop over it.
     if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
@@ -45,7 +37,7 @@ class AcsfToolsUtils extends DrushCommands {
       }
     }
     else {
-      $this->drush->logger()->error("\nFailed to retrieve the list of sites of the factory.");
+      $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
     }
 
     return $sites;
@@ -70,10 +62,10 @@ class AcsfToolsUtils extends DrushCommands {
    */
   public function promptConfirm() {
 
-    $this->drush->output()->writeln(
+    $this->output()->writeln(
       dt('You are about to run a command on all the sites of your factory. 
         Do you confirm you want to do that? If so, type \'yes\''));
-    if (!$this->drush->io()->confirm(dt('Do you want to continue?'))) {
+    if (!$this->io()->confirm(dt('Do you want to continue?'))) {
       throw new UserAbortException();
     }
 
@@ -92,10 +84,10 @@ class AcsfToolsUtils extends DrushCommands {
 
     foreach ($variable as $key => $value) {
       if (!is_array($value)) {
-        $this->drush->output()->writeln($tab . $key . ': ' . $value);
+        $this->output()->writeln($tab . $key . ': ' . $value);
       }
       else {
-        $this->drush->output()->writeln($tab . $key . ':');
+        $this->output()->writeln($tab . $key . ':');
         $this->recursivePrint($value, $indent + 2);
       }
     }
@@ -114,7 +106,7 @@ class AcsfToolsUtils extends DrushCommands {
       $error  = 'acsf_tools_config.yml not found. Make sure to copy/rename ';
       $error .= 'acsf_tools_config.default.yml and set the appropriate ';
       $error .= 'connection info.';
-      $this->drush->logger()->error(dt($error));
+      $this->logger()->error(dt($error));
     }
 
     $config = new \stdClass();
@@ -180,5 +172,17 @@ class AcsfToolsUtils extends DrushCommands {
     $result = json_decode(curl_exec($ch));
     curl_close($ch);
     return $result;
+  }
+
+  /**
+   * Utility function to check if a function should be run
+   * locally, or remotely in ACSF.
+   */
+  public function checkAcsfFunction($function_name = '') {
+    if (!function_exists($function_name)) {
+      $error = "This command cannot be run locally, please run with a valid ACSF alias.";
+      $this->logger()->error(dt($error));
+      return FALSE;
+    }
   }
 }

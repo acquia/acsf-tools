@@ -1,5 +1,0 @@
-services:
-  acsf_tools.commands:
-    class: \Drush\Commands\acsf_tools\AcsfToolsCommands
-    tags:
-      - { name: drush.command }

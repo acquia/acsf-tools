@@ -6,13 +6,13 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsCommands;
+use Drush\Commands\acsf_tools\AcsfToolsUtils;
 use Drush\Exceptions\UserAbortException;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsSitesBackupCommands extends AcsfToolsCommands {
+class AcsfToolsSitesBackupCommands extends AcsfToolsUtils {
 
   /**
    * A command line utility for backing up sites within a Factory.
@@ -36,13 +36,11 @@ class AcsfToolsSitesBackupCommands extends AcsfToolsCommands {
    */
   public function sitesBackup($env, $sites) {
 
-    $utils = $this->utils;
-
     if (!in_array($env, array('dev','test','prod'))) {
       return $this->logger()->error('Invalid Factory environment.');
     }
 
-    $config = $utils->getRestConfig();
+    $config = $this->getRestConfig();
 
     // Ask/warn user about backing up all sites.
     $backup_all_sites = FALSE;
@@ -56,7 +54,7 @@ class AcsfToolsSitesBackupCommands extends AcsfToolsCommands {
     }
 
     // Get a list of sites in the prod factory.
-    $factory_sites = $utils->getRemoteSites($config, $env);
+    $factory_sites = $this->getRemoteSites($config, $env);
 
     // Walk the prod list looking for the alias(es) the user specified.
     $to_backup = array();
@@ -79,13 +77,13 @@ class AcsfToolsSitesBackupCommands extends AcsfToolsCommands {
 
   private function postSiteBackup($config, $site, $env) {
 
-    $backup_endpoint = $this->utils->getFactoryUrl($config, "/api/v1/sites/$site->id/backup", $env);
+    $backup_endpoint = $this->getFactoryUrl($config, "/api/v1/sites/$site->id/backup", $env);
 
     $post_data = array(
       'label' => $site->site . ' ' . date('m-d-Y g:i')
     );
 
-    $result = $this->utils->curlWrapper($config->username, $config->password, $backup_endpoint, $post_data);
+    $result = $this->curlWrapper($config->username, $config->password, $backup_endpoint, $post_data);
     $this->output()->writeln(dt("Backup started for site $site->site."));
   }
 }
