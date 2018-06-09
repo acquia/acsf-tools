@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drush\Commands\acsf_tools;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -16,5 +20,4 @@ class AcsfToolsServiceProvider implements ServiceModifierInterface {
     $yaml_loader = new YamlFileLoader($container, new FileLocator(__DIR__));
     $yaml_loader->load('acsf_tools.services.yml');
   }
-
 }

@@ -30,6 +30,9 @@
   },
   "extra": {
     "installer-name": "acsf_tools",
+    "installer-paths": {
+      "drush/Commands/{$name}": [ "acquia/acsf-tools" ]
+    },
     "drush": {
       "services": {
         "drush.services.yml": "^9"

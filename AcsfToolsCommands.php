@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @file
+ */
+
 namespace Drush\Commands\acsf_tools;
 
 use Drush\Commands\DrushCommands;
@@ -11,7 +15,6 @@ use Symfony\Component\Filesystem\Filesystem;
  * A Drush commandfile.
  */
 class AcsfToolsCommands extends DrushCommands {
-
 
   protected $utils;
 
@@ -116,7 +119,7 @@ class AcsfToolsCommands extends DrushCommands {
       }
     }
     else {
-      $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
+      return $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
     }
 
     $this->output->writeln("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
@@ -162,7 +165,7 @@ class AcsfToolsCommands extends DrushCommands {
   }
 
   /**
-   * Make a DB dump for each site of the factory).
+   * Make a DB dump for each site of the factory.
    *
    * @command acsf-tools:dump
    *
@@ -219,31 +222,88 @@ class AcsfToolsCommands extends DrushCommands {
   }
 
   /**
-   * Fetches and displays the currently deployed sites tag for a Factory.
+   * Make a DB dump for each site of the factory.
    *
-   * @command acsf:tools-get-deployed-tag   
+   * @command acsf-tools:restore
    *
    * @bootstrap full
-   * @param $env
-   *   The environment whose tag we're requesting. I.e., dev, test, prod
-   * @usage drush @mysite.local acsf-get-deployed-tag dev
+   * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
+   * @option source-folder
+   *   The folder in which the dumps are stored. Defaults to ~/drush-backups.
+   * @usage drush acsf-tools-dump
+   *   Restore DB dumps for the sites of the factory. Default backup folder will be used.
+   * @usage drush acsf-tools-dump --source-folder=/home/project/backup/20160617
+   *   Restore DB dumps for factory sites that are stored in the specified folder.
+   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
+   *   Same as above but using options of sql-dump command.
    *
-   * @aliases sft,acsf-tools-get-deployed-tag
+   * @aliases sfr,acsf-tools-restore
    */
-  public function getDeployedTag($env) {
+  function dbRestore() {
 
     $utils = $this->utils;
-    
-    if (!in_array($env, array('dev','test','prod'))) {
-      $this->logger()->error('Invalid Factory environment.');
+
+    // Ask for confirmation before running the command.
+    if (!$utils->promptConfirm()) {
       return false;
     }
 
-    $config = $utils->getRestConfig();
+    // Identify source folder.
+    $source_folder = drush_get_option('source-folder');
+    if (!isset($source_folder)) {
+      $source_folder = '~/drush-backups';
+    }
 
-    $sites_url = $utils->getFactoryUrl($config, '/api/v1/vcs?type=sites', $env);
+    if (!is_dir($source_folder)) {
+      // Source folder does not exist.
+      return $this->logger()->error(dt("Source folder $source_folder does not exist."));
+    }
 
-    $response = $utils->curlWrapper($config->username, $config->password, $sites_url);
-    $this->output()->writeln($response->current);
+    $gzip = drush_get_option('gzip', FALSE);
+
+    // Look for list of sites and loop over it.
+    if ($sites = $this->getSites()) {
+      $arguments = drush_get_arguments();
+
+      $options = drush_get_context('cli');
+      unset($options['php']);
+      unset($options['php-options']);
+      unset($options['source-folder']);
+      unset($options['gzip']);
+
+      foreach ($sites as $details) {
+        $domain = $details['domains'][0];
+        $prefix = explode('.', $domain)[0];
+
+        $source_file = $source_folder . '/' . $prefix . '.sql';
+
+        if ($gzip) {
+          $source_file .= '.gz';
+        }
+
+        if (!file_exists($source_file)) {
+          $this->logger()->error("\n => No source file $source_file for $prefix site.");
+          continue;
+        }
+
+        // Temporary decompressed the dump to be used with drush sql-cli.
+        if ($gzip) {
+          drush_shell_exec('gunzip -k ' . $source_file);
+          $source_file = substr($source_file, 0, -3);
+        }
+
+        $command_drop = 'sql-drop';
+        $command_cli = 'sql-cli < ' . $source_file;
+
+        $this->logger()->info("\n=> Dropping and restoring database on $domain");
+        drush_invoke_process('@self', $command_drop, $arguments, $options + ['l' => $domain, 'y']);
+        drush_invoke_process('@self', $command_cli, $arguments, $options + ['l' => $domain]);
+
+        // Remove the temporary decompressed dump
+        if ($gzip) {
+          drush_shell_exec('rm ' . $source_file);
+        }
+      }
+    }
   }
 }
