@@ -179,10 +179,12 @@ class AcsfToolsUtils extends DrushCommands {
    * locally, or remotely in ACSF.
    */
   public function checkAcsfFunction($function_name = '') {
+
     if (!function_exists($function_name)) {
       $error = "This command cannot be run locally, please run with a valid ACSF alias.";
       $this->logger()->error(dt($error));
       return FALSE;
     }
+    return TRUE;
   }
 }
