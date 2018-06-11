@@ -2,7 +2,7 @@
 
 ## Summary: 
 
-This project contains a set of drush scripts designed to ease administering an Acquia Cloud Site Factory multisite 
+This project contains drush scripts designed to ease administering an Acquia Cloud Site Factory multisite 
 platform. While Drush provides many utilities to aid generally in Drupal administraton, multsite in general and ACSF in
 particular adds a lot of complexity when managing multiple sites that live in a shared codebase. These tools merge
 ACSF multisites concepts with the ease of Drush-based administration.
@@ -11,10 +11,25 @@ ACSF multisites concepts with the ease of Drush-based administration.
 
 #### Install
 
-For simpler projects with a single developer or very small teams, you can just clone this repository in your users' drush
-directory (e.g., ~/.drush).
+For simpler projects with a single developer or very small teams, you can just clone this repository in your projects' global drush
+directory (e.g., [project-root]/drush/Commands).
 
-For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
+For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools:9.x-dev`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
+
+_If you'd like to upgrade from acsf-tools 8.x to 9.x, the easiest method is to run `composer remove acquia/acsf-tools` and then `composer require acquia/acsf-tools:9.x-dev`. This will ensure no cruft remains from the 8.x version. Make a backup of your local acsf_tools_config.yml before running `composer remove`._
+
+#### Drush 9 Installs
+
+Using this branch requires Drush 9. There are some [architectural changes to global commands in Drush 9](http://docs.drush.org/en/master/commands/#global-drush-commands) that you'll want to become familiar with.
+
+_Also, there are some additional manual install steps while some upstream packages ([BLT](https://github.com/acquia/blt/tree/8.9.x), [Composer-installers](https://github.com/composer/installers)) adapt to Drush 9:_
+
+* If your repository incldues a legacy `/drush/contrib` folder, rename it to `drush/Commands`.
+* If you're using BLT:
+  * add `/Commands` to your main .gitignore.
+  * Add the following as a post-deploy-build command in `blt/blt.yml`:
+    * `find ''Commands'' -type d -name ''.git'' -exec rm -fr {} +`
+  * In your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
 
 #### Configuration
 
@@ -36,12 +51,6 @@ scripts should only be ran by a platform admin with the appropriate permissions 
 _not be committing API credentials to your repository_.
 
 ## Tools:
-
-#### Generate Drush Aliases
-
-__acsf-tools-generate-aliases (sfa):__ This command will query the ACSF REST API and store a list of all of the sites in
-your factory locally. It will then move a dynamic alias template into your drush folder. The template will load the list
-of sites when the drush cache is cleared and make a prod/test/dev alias available for every site in your factory. After running this command the first time, you should check in the generated '*.aliases.drushrc.php' (where * is your ACSF site ID) file to your repository. _You will not need to check in anything else into your repo ever again, and can refresh the site list locally anytime you create/deploy a new site in ACSF_.
 
 #### Get Deployed Tag
 
@@ -93,12 +102,12 @@ same as any other drush remote execution script.
 
 * __acsf-tools-list (sfl):__ This command will list the details (e.g., name, url, aliases) for all sites in your 
 factory.
-* __acsf-tools-info (sfi):__ This command will list site specific information (e.g., ID, Name, DB Name, Domain) for all sites in your 
-factory.
+* __acsf-tools-info (sfi):__ This command will list site specific information (e.g., ID, Name, DB Name, Domain) for all sites in your factory.
 * __acsf-tools-ml (sfml):__ This command will run any drush command against *all* sites in your factory. E.g., 
 `drush @coolsites.01dev sfml st` will run the drush status command against all sites in your factory and return the
-output. This is useful for disabling clearing cache, or disabling a single module for every site in your factory.
-* __acsf-tools-dump (sfdu):__ This command will create drush backups for all sites in your factory.
+output. This is useful for clearing cacheS, or disabling a single module for every site in your factory.
+* __acsf-tools-dump (sfdu):__ This command will create a quick sql backup for all sites in your factory.
+* __acsf-tools-restore (sfr):__ This command will restore sql backups for all sites in your factory.
  
 
 
