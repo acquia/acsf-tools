@@ -26,10 +26,15 @@ _Also, there are some additional manual install steps while some upstream packag
 
 * If your repository incldues a legacy `/drush/contrib` folder, rename it to `drush/Commands`.
 * If you're using BLT:
-  * add `/Commands` to your main .gitignore.
-  * Add the following as a post-deploy-build command in `blt/blt.yml`:
-    * `find ''Commands'' -type d -name ''.git'' -exec rm -fr {} +`
-  * In your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
+  * Change `drush/contrib` to `drush/Commands` in your main .gitignore.
+  * Add the following as a `post-deploy-build` command in `blt/blt.yml`:
+    
+  ```javascript
+  dir: '${deploy.dir}/drush'
+  command: 'find ''Commands'' -type d -name ''.git'' -exec rm -fr {} +'
+  ```
+  
+* In your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
 
 #### Configuration
 
