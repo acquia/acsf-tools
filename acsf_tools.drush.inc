@@ -172,9 +172,23 @@ function drush_acsf_tools_ml() {
     unset($options['php']);
     unset($options['php-options']);
 
+    $profile = $options['profile'] ?? '';
+    unset($options['profile']);
+
     $processed = array();
     foreach ($sites as $details) {
       $domain = $details['domains'][0];
+
+      if (!empty($profile)) {
+        $profile_options = $options;
+        $profile_options['fields'] = 'install-profile';
+        $profile_options['l'] = $domain;
+        $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options);
+        if ($profile != $site_profile_info['object']['install-profile']) {
+          drush_log("\n=> Skipping command on $domain", 'ok');
+          continue;
+        }
+      }
 
       drush_log("\n=> Running command on $domain", 'ok');
       drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
