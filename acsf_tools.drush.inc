@@ -432,7 +432,6 @@ function _drush_acsf_tools_recursive_print($variable, $indent) {
  * @return bool
  */
 function _drush_acsf_tools_prompt_confirm() {
-
   // no-prompt option added to skip the confirmation command.
   $no_prompt = drush_get_option('no-prompt', FALSE);
   if ($no_prompt) {
