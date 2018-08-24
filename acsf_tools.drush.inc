@@ -57,6 +57,7 @@ function acsf_tools_drush_command() {
       'drush8 acsf-tools-dump' => 'Create DB dumps for the sites of the factory. Default result folder will be used.',
       'drush8 acsf-tools-dump --result-folder=/home/project/backup/20160617' => 'Create DB dumps for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.',
       'drush8 acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip' => 'Same as above but using options of sql-dump command.',
+      'drush8 acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip --no-prompt' => 'Create DB dumps for the sites forcefully without any prompt message needed for confirmation on all the sites of your factory.',
     ),
     'aliases' => ['sfdu'],
   );
@@ -71,8 +72,9 @@ function acsf_tools_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
     'examples' => [
       'drush8 acsf-tools-restore' => 'Restore DB dumps for the sites of the factory. Default source folder will be used.',
-      'drush8 acsf-tools-restore --source-folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
-      'drush8 acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip' => 'Same as above but using compressed DB dumps.',
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip' => 'Same as above but using compressed DB dumps.',
+      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip --no-prompt' => 'Restore DB dumps forcefully without any prompt message needed for confirmation on all the sites of your factory.',
     ],
     'aliases' => ['sfre'],
   ];
@@ -213,8 +215,8 @@ function drush_acsf_tools_dump() {
     $options = drush_get_context('cli');
     unset($options['php']);
     unset($options['php-options']);
-
     unset($options['result-folder']);
+    unset($options['no-prompt']);
 
     $processed = array();
     foreach ($sites as $details) {
@@ -261,6 +263,7 @@ function drush_acsf_tools_restore() {
     unset($options['php-options']);
     unset($options['source-folder']);
     unset($options['gzip']);
+    unset($options['no-prompt']);
 
     foreach ($sites as $details) {
       $domain = $details['domains'][0];
@@ -429,6 +432,12 @@ function _drush_acsf_tools_recursive_print($variable, $indent) {
  * @return bool
  */
 function _drush_acsf_tools_prompt_confirm() {
+  // no-prompt option added to skip the confirmation command.
+  $no_prompt = drush_get_option('no-prompt', FALSE);
+  if ($no_prompt) {
+    return TRUE;
+  }
+
   // Ask for confirmation before running the command.
   // Special care for -y option to avoid drush_prompt default behaviour.
   $yes = drush_get_context('DRUSH_AFFIRMATIVE');
