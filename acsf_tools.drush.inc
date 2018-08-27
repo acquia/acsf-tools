@@ -42,6 +42,7 @@ function acsf_tools_drush_command() {
     'examples' => array(
       'drush8 acsf-tools-ml vget site_mail' => 'Get value of site_mail variable for all the sites.',
       'drush8 acsf-tools-ml sqlq "select status from system where name=\'php\'"' => 'Check status of php module on all the sites.',
+      'drush8 acsf-tools-ml cron --profiles=standard,custom' => "Execute command on specific profiles"
     ),
     'aliases' => ['sfml'],
   );
@@ -174,9 +175,24 @@ function drush_acsf_tools_ml() {
     unset($options['php']);
     unset($options['php-options']);
 
+    $profiles = $options['profiles'] ?? '';
+    $profiles = explode(',', $profiles);
+    unset($options['profiles']);
+
     $processed = array();
     foreach ($sites as $details) {
       $domain = $details['domains'][0];
+
+      if (!empty($profiles)) {
+        $profile_options = $options;
+        $profile_options['fields'] = 'install-profile';
+        $profile_options['l'] = $domain;
+        $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options);
+        if (in_array($site_profile_info['object']['install-profile'], $profiles)) {
+          drush_log("\n=> Skipping command on $domain", 'ok');
+          continue;
+        }
+      }
 
       drush_log("\n=> Running command on $domain", 'ok');
       drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
