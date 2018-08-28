@@ -296,18 +296,18 @@ function drush_acsf_tools_restore() {
         continue;
       }
 
-      // Temporary decompressed the dump to be used with drush sql-cli.
+      // Temporary decompress the dump to be used with drush sql-cli.
       if ($gzip) {
         drush_shell_exec('gunzip -k ' . $source_file);
         $source_file = substr($source_file, 0, -3);
       }
 
-      $command_drop = 'sql-drop';
-      $command_cli = 'sql-cli < ' . $source_file;
-
       drush_log("\n=> Dropping and restoring database on $domain", 'ok');
-      drush_invoke_process('@self', $command_drop, $arguments, $options + ['l' => $domain, 'y']);
-      drush_invoke_process('@self', $command_cli, $arguments, $options + ['l' => $domain]);
+      $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options + ['l' => $domain], ['output' => FALSE]);
+      if (!empty($result['object'])) {
+        drush_invoke_process('@self', 'sql-drop', $arguments, $options + ['l' => $domain, 'y']);
+        drush_shell_exec($result['object'] . ' < ' . $source_file);
+      }
 
       // Remove the temporary decompressed dump
       if ($gzip) {
