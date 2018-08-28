@@ -98,7 +98,8 @@ factory.
 * __acsf-tools-ml (sfml):__ This command will run any drush command against *all* sites in your factory. E.g., 
 `drush @coolsites.01dev sfml st` will run the drush status command against all sites in your factory and return the
 output. This is useful for disabling clearing cache, or disabling a single module for every site in your factory.
-* __acsf-tools-dump (sfdu):__ This command will create drush backups for all sites in your factory.
+* __acsf-tools-dump (sfdu):__ This command will create database backups for all sites in your factory.
+* __acsf-tools-restore (sfre):__ This command will restore database backups for all sites in your factory.
  
 
 
