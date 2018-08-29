@@ -175,8 +175,8 @@ function drush_acsf_tools_ml() {
     unset($options['php']);
     unset($options['php-options']);
 
-    $profiles = $options['profiles'] ?? '';
-    $profiles = explode(',', $profiles);
+    $profiles = $options['profiles'] ?? NULL;
+    $profiles = $profiles ? explode(',', $profiles) : NULL;
     unset($options['profiles']);
 
     $processed = array();
@@ -187,8 +187,8 @@ function drush_acsf_tools_ml() {
         $profile_options = $options;
         $profile_options['fields'] = 'install-profile';
         $profile_options['l'] = $domain;
-        $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options);
-        if (in_array($site_profile_info['object']['install-profile'], $profiles)) {
+        $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options, ['output' => FALSE]);
+        if (!in_array($site_profile_info['object']['install-profile'], $profiles)) {
           drush_log("\n=> Skipping command on $domain", 'ok');
           continue;
         }
