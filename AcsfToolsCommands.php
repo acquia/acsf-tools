@@ -18,7 +18,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:list
    *
-   * @bootstrap full
+   * @bootstrap site
    * @param array $options An associative array of options whose values come
    *   from cli, aliases, config, etc.
    * @option fields
@@ -63,7 +63,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:info
    *
-   * @bootstrap full
+   * @bootstrap site
    * @usage drush acsf-tools-info
    *   Get more details for all the sites of the factory.
    *
@@ -116,7 +116,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:ml
    *
-   * @bootstrap full
+   * @bootstrap site
    * @params $cmd
    *   The drush command you want to run against all sites in your factory.
    * @params $args Optional.
@@ -150,7 +150,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:dump
    *
-   * @bootstrap full
+   * @bootstrap site
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option result-folder
    *   The folder in which the dumps will be written. Defaults to ~/drush-backups.
@@ -205,7 +205,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:restore
    *
-   * @bootstrap full
+   * @bootstrap site
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option source-folder
    *   The folder in which the dumps are stored. Defaults to ~/drush-backups.
