@@ -194,7 +194,6 @@ function drush_acsf_tools_ml() {
           if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
             if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
               $proceed = FALSE;
-
             }
           }
         }
