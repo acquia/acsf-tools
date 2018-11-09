@@ -179,16 +179,36 @@ function drush_acsf_tools_ml() {
     $profiles = $profiles ? explode(',', $profiles) : NULL;
     unset($options['profiles']);
 
-    $processed = array();
     foreach ($sites as $details) {
       $domain = $details['domains'][0];
 
+      // If specific profile is provided, we check if it is the site's profile.
+      // We first try to get site's profile from the settings file. If we can't
+      // find the settings file, we use drush core-status to get it.
       if (!empty($profiles)) {
-        $profile_options = $options;
-        $profile_options['fields'] = 'install-profile';
-        $profile_options['l'] = $domain;
-        $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options, ['output' => FALSE]);
-        if (!in_array($site_profile_info['object']['install-profile'], $profiles)) {
+        $proceed = TRUE;
+
+        $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
+        if (file_exists($site_settings_filepath)) {
+          $site_settings = @file_get_contents($site_settings_filepath);
+          if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
+            if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+              $proceed = FALSE;
+
+            }
+          }
+        }
+        else {
+          $profile_options = $options;
+          $profile_options['fields'] = 'install-profile';
+          $profile_options['l'] = $domain;
+          $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options, ['output' => FALSE]);
+          if (!in_array($site_profile_info['object']['install-profile'], $profiles)) {
+            $proceed = FALSE;
+          }
+        }
+
+        if (!$proceed) {
           drush_log("\n=> Skipping command on $domain", 'ok');
           continue;
         }
