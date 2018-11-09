@@ -121,26 +121,44 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   The drush command you want to run against all sites in your factory.
    * @params $args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
+   * @option profiles
+   *   Target sites with specific profiles. Comma list.
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "system.site mail"
    *   Get value of site_mail variable for all the sites.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $args = '') {
+  public function ml($cmd, $args = '', array $options = ['profiles' => null]) {
 
     // TODO: Find a better way to handle multiple args, e.g. `drush sqlq "SELECT .."`.
     $args = explode(" ", $args);
 
+    unset($options['php']);
+    unset($options['php-options']);
+
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
 
-      $processed = array();
+      $profiles = explode(',', $options['profiles']);
+      unset($options['profiles']);
+
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
 
-        $this->output()->writeln("=> Running command on $domain");
-        drush_invoke_process('@self', $cmd, $args, array('uri' => $domain));
+        $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
+        if (!empty($profiles) && file_exists($site_settings_filepath)) {
+          $site_settings = @file_get_contents($site_settings_filepath);
+          if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
+            if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+              $this->output()->writeln("\n=> Skipping command on $domain");
+              continue;
+            }
+          }
+        }
+
+        $this->output()->writeln("\n=> Running command on $domain");
+        drush_invoke_process('@self', $cmd, $args, $options + array('uri' => $domain));
       }
     }
   }
