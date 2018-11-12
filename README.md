@@ -16,25 +16,25 @@ directory (e.g., [project-root]/drush/Commands).
 
 For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools:9.x-dev`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
 
-_If you'd like to upgrade from acsf-tools 8.x to 9.x, the easiest method is to run `composer remove acquia/acsf-tools` and then `composer require acquia/acsf-tools:9.x-dev`. This will ensure no cruft remains from the 8.x version. Make a backup of your local acsf_tools_config.yml before running `composer remove`._
 
-#### Drush 9 Installs
+#### Upgrading from Drush 8
 
 Using this branch requires Drush 9. There are some [architectural changes to global commands in Drush 9](http://docs.drush.org/en/master/commands/#global-drush-commands) that you'll want to become familiar with.
 
-_Also, there are some additional manual install steps while some upstream packages ([BLT](https://github.com/acquia/blt/tree/8.9.x), [Composer-installers](https://github.com/composer/installers)) adapt to Drush 9:_
+If you are using BLT, make sure to update to 9.1.0 or later, as it automatically includes these updates.
 
-* If your repository incldues a legacy `/drush/contrib` folder, rename it to `drush/Commands`.
-* If you're using BLT:
-  * Change `drush/contrib` to `drush/Commands` in your main .gitignore.
-  * Add the following as a `post-deploy-build` command in `blt/blt.yml`:
-    
-  ```javascript
-  dir: '${deploy.dir}/drush'
-  command: 'find ''Commands'' -type d -name ''.git'' -exec rm -fr {} +'
-  ```
-  
-* In your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
+If you are not using BLT, consider the following steps:
+* Make a backup of your local acsf_tools_config.yml 
+* Remove the existing copy of ACSF Tools and remove the Drush contrib directory (which is incompatible with Drush 9).
+  * If you are using Composer, run `composer remove acquia/acsf-tools`.
+  * If not using composer, run `rm -rf drush/contrib`.
+* Change the location where ACSF Tools is stored
+  * If you are using Composer, in your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
+  * If not using Composer, `mkdir drush/Commands`.
+* Get the new version of ACSF Tools:
+  * If you are using Composer, `composer require acquia/acsf-tools:9.x-dev`.
+  * If not using Composer, clone the repo into `drush/Commands`.
+* Change `drush/contrib` to `drush/Commands` in your main .gitignore.
 
 #### Configuration
 
