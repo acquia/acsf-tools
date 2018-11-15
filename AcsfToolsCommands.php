@@ -172,6 +172,9 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option result-folder
    *   The folder in which the dumps will be written. Defaults to ~/drush-backups.
+   * @option gzip
+   *   Compress the dump into a zip file.
+   *
    * @usage drush acsf-tools-dump
    *   Create DB dumps for the sites of the factory. Default result folder will be used.
    * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617
@@ -181,7 +184,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @aliases sfdu,acsf-tools-dump
    */
-  public function dbDump(array $options = ['result-folder' => '~/drush-backups']) {
+  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE]) {
 
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
