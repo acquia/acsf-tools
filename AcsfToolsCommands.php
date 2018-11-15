@@ -181,7 +181,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *
    * @aliases sfdu,acsf-tools-dump
    */
-  public function dbDump(array $options = ['result-folder' => null]) {
+  public function dbDump(array $options = ['result-folder' => '~/drush-backups']) {
 
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
@@ -189,10 +189,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
     }
 
     // Identify target folder.
-    $result_folder = drush_get_option('result-folder');
-    if (!isset($result_folder)) {
-      $result_folder = '~/drush-backups';
-    }
+    $result_folder = $options['result-folder'];
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
@@ -205,7 +202,6 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
       unset($options['result-folder']);
 
-      $processed = array();
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
         $prefix = explode('.', $domain)[0];
@@ -227,16 +223,21 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option source-folder
    *   The folder in which the dumps are stored. Defaults to ~/drush-backups.
-   * @usage drush acsf-tools-dump
+   * @option gzip
+   *   Restore from a zipped dump.
+   *
+   * @usage drush acsf-tools-restore
    *   Restore DB dumps for the sites of the factory. Default backup folder will be used.
-   * @usage drush acsf-tools-dump --source-folder=/home/project/backup/20160617
+   * @usage drush acsf-tools-restore --source-folder=/home/project/backup/20160617
    *   Restore DB dumps for factory sites that are stored in the specified folder.
-   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
-   *   Same as above but using options of sql-dump command.
+   * @usage drush acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip
+   *   Restore compressed DB dumps for factory sites that are stored in the specified folder.
    *
    * @aliases sfr,acsf-tools-restore
+   *
+   * @return bool|void
    */
-  function dbRestore() {
+  function dbRestore(array $options = ['source-folder' => '~/drush-backups', 'gzip' => FALSE]) {
 
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
@@ -244,17 +245,14 @@ class AcsfToolsCommands extends AcsfToolsUtils {
     }
 
     // Identify source folder.
-    $source_folder = drush_get_option('source-folder');
-    if (!isset($source_folder)) {
-      $source_folder = '~/drush-backups';
-    }
+    $source_folder = $options['source-folder'];
 
     if (!is_dir($source_folder)) {
       // Source folder does not exist.
       return $this->logger()->error(dt("Source folder $source_folder does not exist."));
     }
 
-    $gzip = drush_get_option('gzip', FALSE);
+    $gzip = $options['gzip'];
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
