@@ -292,7 +292,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         $this->logger()->info("\n=> Dropping and restoring database on $domain");
         $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options + ['l' => $domain], ['output' => FALSE]);
         if (!empty($result['object'])) {
-          drush_invoke_process('@self', 'sql-drop', $arguments, $options + ['l' => $domain, 'y']);
+          drush_invoke_process('@self', 'sql-drop', $arguments, $options + ['l' => $domain]);
           drush_shell_exec($result['object'] . ' < ' . $source_file);
         }
 
