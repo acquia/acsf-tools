@@ -6,7 +6,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsUtils;
+use Drush\Drush;
 
 /**
  * A Drush commandfile.
@@ -158,8 +158,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           }
         }
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
         $options['uri'] = $domain;
-        $options = $this->filterDrushGlobals($options);
 
         $this->output()->writeln("\n=> Running command on $domain");
         drush_invoke_process('@self', $cmd, $args, $options);
@@ -213,9 +215,11 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         $domain = $details['domains'][0];
         $prefix = explode('.', $domain)[0];
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
         $options['result-file'] = $result_folder . '/' . $prefix . '.sql';
         $options['uri'] = $domain;
-        $options = $this->filterDrushGlobals($options);
 
         $this->logger()->info("\n=> Running command on $domain");
         drush_invoke_process('@self', $command, $arguments, $options);
@@ -294,8 +298,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           $source_file = substr($source_file, 0, -3);
         }
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
         $options['uri'] = $domain;
-        $options = $this->filterDrushGlobals($options);
 
         $this->logger()->info("\n=> Dropping and restoring database on $domain");
         $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options, ['output' => FALSE]);
@@ -310,35 +316,5 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         }
       }
     }
-  }
-
-  /**
-   * Helper function to filter out drush globals set by default & are passed by
-   * default to drush_invoke_process, but not understood by drush commands.
-   *
-   * @param $options
-   *   Drush options to be filtered
-   *
-   * @return array
-   *   Filtered drush options based on the whitelist array.
-   */
-  protected function filterDrushGlobals($options) {
-    $drush_global_defaults = [
-      'quiet',
-      'no-interaction',
-      'druplicon',
-      'yes',
-      'no',
-      'no-ansi',
-      'ansi',
-      'version',
-      'pipe',
-      'verbose',
-      'help',
-    ];
-
-    return array_filter($options, function($key) use($drush_global_defaults) {
-      in_array($key, $drush_global_defaults) ? FALSE : TRUE;
-    }, ARRAY_FILTER_USE_KEY);
   }
 }
