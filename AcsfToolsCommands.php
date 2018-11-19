@@ -6,7 +6,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\acsf_tools\AcsfToolsUtils;
+use Drush\Drush;
 
 /**
  * A Drush commandfile.
@@ -158,8 +158,13 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           }
         }
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
+        $options['uri'] = $domain;
+
         $this->output()->writeln("\n=> Running command on $domain");
-        drush_invoke_process('@self', $cmd, $args, $options + array('uri' => $domain));
+        drush_invoke_process('@self', $cmd, $args, $options);
       }
     }
   }
@@ -210,10 +215,14 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         $domain = $details['domains'][0];
         $prefix = explode('.', $domain)[0];
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
         $options['result-file'] = $result_folder . '/' . $prefix . '.sql';
+        $options['uri'] = $domain;
 
         $this->logger()->info("\n=> Running command on $domain");
-        drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
+        drush_invoke_process('@self', $command, $arguments, $options);
       }
     }
   }
@@ -289,10 +298,15 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           $source_file = substr($source_file, 0, -3);
         }
 
+        // Get options passed to this drush command & append it with options
+        // needed by the next command to execute.
+        $options = Drush::redispatchOptions();
+        $options['uri'] = $domain;
+
         $this->logger()->info("\n=> Dropping and restoring database on $domain");
-        $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options + ['l' => $domain], ['output' => FALSE]);
+        $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options, ['output' => FALSE]);
         if (!empty($result['object'])) {
-          drush_invoke_process('@self', 'sql-drop', $arguments, $options + ['l' => $domain]);
+          drush_invoke_process('@self', 'sql-drop', $arguments, $options);
           drush_shell_exec($result['object'] . ' < ' . $source_file);
         }
 
