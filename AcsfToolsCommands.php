@@ -145,7 +145,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
       }
 
       foreach ($sites as $details) {
-        $domain = $details['domains'][0];
+        // Get the first custom domain if any. Otherwise use the first domain
+        // which is *.acsitefactory.com. Given this is used as --uri parameter
+        // by the drush command, it can have an impact on the drupal process.
+        $domain = $details['domains'][1] ?? $details['domains'][0];
 
         $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
         if (!empty($profiles) && file_exists($site_settings_filepath)) {
