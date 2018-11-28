@@ -180,7 +180,10 @@ function drush_acsf_tools_ml() {
     unset($options['profiles']);
 
     foreach ($sites as $details) {
-      $domain = $details['domains'][0];
+      // Get the first custom domain if any. Otherwise use the first domain
+      // which is *.acsitefactory.com. Given this is used as --uri parameter
+      // by the drush command, it can have an impact on the drupal process.
+      $domain = $details['domains'][1] ?? $details['domains'][0];
 
       // If specific profile is provided, we check if it is the site's profile.
       // We first try to get site's profile from the settings file. If we can't
