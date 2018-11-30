@@ -126,8 +126,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "system.site mail"
-   *   Get value of site_mail
-   variable for all the sites.
+   *   Get value of site_mail variable for all the sites.
    * @usage drush acsf-tools-ml upwd "'admin' 'password'"
    *   Update user password.
    * @aliases sfml,acsf-tools-ml
