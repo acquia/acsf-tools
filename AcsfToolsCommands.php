@@ -126,13 +126,17 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "system.site mail"
-   *   Get value of site_mail variable for all the sites.
+   *   Get value of site_mail
+   variable for all the sites.
+   * @usage drush acsf-tools-ml upwd "'admin' 'password'"
+   *   Update user password.
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $args = '', array $options = ['profiles' => null]) {
 
     // TODO: Find a better way to handle multiple args, e.g. `drush sqlq "SELECT .."`.
-    $args = explode(" ", $args);
+    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
+    $args = preg_split("/'\s'/", $args);
 
     unset($options['php']);
     unset($options['php-options']);
