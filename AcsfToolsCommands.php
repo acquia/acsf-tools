@@ -125,14 +125,21 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Target sites with specific profiles. Comma list.
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
-   * @usage drush acsf-tools-ml cget "system.site mail"
+   * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
    *   Get value of site_mail variable for all the sites.
+   * @usage drush acsf-tools-ml upwd "'admin' 'password'"
+   *   Update user password.
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $args = '', array $options = ['profiles' => null]) {
 
-    // TODO: Find a better way to handle multiple args, e.g. `drush sqlq "SELECT .."`.
-    $args = explode(" ", $args);
+    // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
+    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
+    $args = preg_split("/'\s'/", $args);
+
+    // Trim off "'" that will stay back after preg split with 1st & the last arg.
+    $args[0] = ltrim($args[0], "'");
+    $args[count($args) -1] = rtrim($args[count($args) -1], "'");
 
     unset($options['php']);
     unset($options['php-options']);
