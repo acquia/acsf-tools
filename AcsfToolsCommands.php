@@ -134,7 +134,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    */
   public function ml($cmd, $args = '', array $options = ['profiles' => null]) {
 
-    // TODO: Find a better way to handle multiple args, e.g. `drush sqlq "SELECT .."`.
+    // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
     $args = preg_split("/'\s'/", $args);
 
