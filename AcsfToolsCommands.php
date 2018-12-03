@@ -119,8 +119,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @bootstrap site
    * @params $cmd
    *   The drush command you want to run against all sites in your factory.
-   * @params $args Optional.
+   * @params $command_args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
+   * @params $command_options Optional.
+   *   A quoted space delimited set of options to pass to your drush command.
    * @option profiles
    *   Target sites with specific profiles. Comma list.
    * @usage drush acsf-tools-ml st
@@ -129,20 +131,38 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Get value of site_mail variable for all the sites.
    * @usage drush acsf-tools-ml upwd "'admin' 'password'"
    *   Update user password.
+   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
+   *   Fetch config value in JSON format.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $args = '', array $options = ['profiles' => null]) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '']) {
 
     // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
-    $args = preg_split("/'\s'/", $args);
+    $command_args = preg_split("/'\s'/", $command_args);
 
     // Trim off "'" that will stay back after preg split with 1st & the last arg.
-    $args[0] = ltrim($args[0], "'");
-    $args[count($args) -1] = rtrim($args[count($args) -1], "'");
+    $command_args[0] = ltrim($command_args[0], "'");
+    $command_args[count($command_args) -1] = rtrim($command_args[count($command_args) -1], "'");
 
-    unset($options['php']);
-    unset($options['php-options']);
+    // drush 9 has strict validation around keys via which option values can be
+    // passed to the command. Its expected to throw exception if an option name
+    // not declared by the commands definition is passed to it. Dynamically
+    // passing options to all commands will not be directly possible with drush9
+    // (as it was the case with drush8). We try to receive all command specific
+    // options as an argument & parse it before invoking the sub-command.
+
+    //  Parse list of options to be passed ot the drush sub-command being
+    // invoked.
+    $command_options = preg_split("/'\s'/", $command_options);
+    $command_options[0] = ltrim($command_options[0], "'");
+    $command_options[count($command_options) -1] = rtrim($command_options[count($command_options) -1], "'");
+    $drush_command_options = [];
+
+    foreach ($command_options as $option_value) {
+      list($key, $value) = explode('=', $option_value);
+      $drush_command_options[$key] = $value;
+    }
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
@@ -168,13 +188,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           }
         }
 
-        // Get options passed to this drush command & append it with options
-        // needed by the next command to execute.
-        $options = Drush::redispatchOptions();
-        $options['uri'] = $domain;
+        $drush_command_options['uri'] = $domain;
 
         $this->output()->writeln("\n=> Running command on $domain");
-        drush_invoke_process('@self', $cmd, $args, $options);
+        drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
       }
     }
   }
