@@ -179,46 +179,56 @@ function drush_acsf_tools_ml() {
     $profiles = $profiles ? explode(',', $profiles) : NULL;
     unset($options['profiles']);
 
-    foreach ($sites as $details) {
-      // Get the first custom domain if any. Otherwise use the first domain
-      // which is *.acsitefactory.com. Given this is used as --uri parameter
-      // by the drush command, it can have an impact on the drupal process.
-      $domain = $details['domains'][1] ?? $details['domains'][0];
+    $total_time_limit = (int) drush_get_option('total-time-limit');
 
-      // If specific profile is provided, we check if it is the site's profile.
-      // We first try to get site's profile from the settings file. If we can't
-      // find the settings file, we use drush core-status to get it.
-      if (!empty($profiles)) {
-        $proceed = TRUE;
+    $end = time() + $total_time_limit;
+    do {
+      foreach ($sites as $delta => $details) {
+        // Get the first custom domain if any. Otherwise use the first domain
+        // which is *.acsitefactory.com. Given this is used as --uri parameter
+        // by the drush command, it can have an impact on the drupal process.
+        $domain = $details['domains'][1] ?? $details['domains'][0];
 
-        $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
-        if (file_exists($site_settings_filepath)) {
-          $site_settings = @file_get_contents($site_settings_filepath);
-          if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
-            if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+        // If specific profile is provided, we check if it is the site's profile.
+        // We first try to get site's profile from the settings file. If we can't
+        // find the settings file, we use drush core-status to get it.
+        if (!empty($profiles)) {
+          $proceed = TRUE;
+
+          $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
+          if (file_exists($site_settings_filepath)) {
+            $site_settings = @file_get_contents($site_settings_filepath);
+            if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
+              if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+                $proceed = FALSE;
+              }
+            }
+          }
+          else {
+            $profile_options = $options;
+            $profile_options['fields'] = 'install-profile';
+            $profile_options['l'] = $domain;
+            $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options, ['output' => FALSE]);
+            if (!in_array($site_profile_info['object']['install-profile'], $profiles)) {
               $proceed = FALSE;
             }
           }
-        }
-        else {
-          $profile_options = $options;
-          $profile_options['fields'] = 'install-profile';
-          $profile_options['l'] = $domain;
-          $site_profile_info = drush_invoke_process('@self', 'core-status', [], $profile_options, ['output' => FALSE]);
-          if (!in_array($site_profile_info['object']['install-profile'], $profiles)) {
-            $proceed = FALSE;
+
+          if (!$proceed) {
+            drush_log("\n=> Skipping command on $domain", 'ok');
+            continue;
           }
         }
 
-        if (!$proceed) {
-          drush_log("\n=> Skipping command on $domain", 'ok');
-          continue;
+        drush_log("\n=> Running command on $domain", 'ok');
+        $output = drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
+
+        // @TODO Find a better way to remove sites from execution list.
+        if (empty($output['output'])) {
+          unset($sites[$delta]);
         }
       }
-
-      drush_log("\n=> Running command on $domain", 'ok');
-      drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
-    }
+    } while ($total_time_limit && time() < $end && !empty($sites));
   }
 }
 
