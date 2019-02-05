@@ -198,8 +198,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
 
         // Delay in running the command for next site.
-        if (count($sites) > 1 && is_numeric($options['delay'])) {
-          $this->output()->writeln("\n=> Sleeping for " . $options['delay'] . " seconds before running command on next site.");
+        if (count($sites) > 1 && !empty($sleep_time = abs($options['delay']))) {
+          $this->output()->writeln("\n=> Sleeping for $sleep_time seconds before running command on next site.");
           sleep($options['delay']);
         }
       }
