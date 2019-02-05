@@ -175,6 +175,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         unset($options['profiles']);
       }
 
+      $i = 0;
+      $delay = abs($options['delay']);
       foreach ($sites as $details) {
         // Get the first custom domain if any. Otherwise use the first domain
         // which is *.acsitefactory.com. Given this is used as --uri parameter
@@ -198,9 +200,9 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
 
         // Delay in running the command for next site.
-        if (count($sites) > 1 && !empty($sleep_time = abs($options['delay']))) {
-          $this->output()->writeln("\n=> Sleeping for $sleep_time seconds before running command on next site.");
-          sleep($options['delay']);
+        if ($delay > 0 && $i < (count($sites) - 1)) {
+          $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
+          sleep($delay);
         }
       }
     }
