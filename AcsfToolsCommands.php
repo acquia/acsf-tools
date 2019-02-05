@@ -176,7 +176,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
       }
 
       $i = 0;
-      $delay = abs($options['delay']);
+      $delay = $options['delay'];
       foreach ($sites as $details) {
         // Get the first custom domain if any. Otherwise use the first domain
         // which is *.acsitefactory.com. Given this is used as --uri parameter
