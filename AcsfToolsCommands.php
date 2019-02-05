@@ -125,6 +125,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   A quoted space delimited set of options to pass to your drush command.
    * @option profiles
    *   Target sites with specific profiles. Comma list.
+   * @option delay
+   *   Number of seconds to delay to run command between each site.
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
@@ -133,9 +135,11 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Update user password.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
    *   Fetch config value in JSON format.
+   * @usage drush acsf-tools-ml cr --delay=10
+   *   Run cache clear on all sites with delay of 10 seconds between each site.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '']) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0]) {
 
     // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
@@ -171,6 +175,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         unset($options['profiles']);
       }
 
+      $i = 0;
+      $delay = $options['delay'];
       foreach ($sites as $details) {
         // Get the first custom domain if any. Otherwise use the first domain
         // which is *.acsitefactory.com. Given this is used as --uri parameter
@@ -192,6 +198,12 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
         $this->output()->writeln("\n=> Running command on $domain");
         drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
+
+        // Delay in running the command for next site.
+        if ($delay > 0 && $i < (count($sites) - 1)) {
+          $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
+          sleep($delay);
+        }
       }
     }
   }
