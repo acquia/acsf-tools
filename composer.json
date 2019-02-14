@@ -23,7 +23,7 @@
   },
   "extra": {
     "branch-alias": {
-      "dev-8.x-dev": "master2-dev"
+      "dev-8.x-dev": "1.0.x-dev"
     }
   }
 }
