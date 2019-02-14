@@ -20,5 +20,10 @@
   "prefer-stable": true,
   "require": {
     "symfony/yaml": "^3.0"
+  },
+  "extra": {
+    "branch-alias": {
+      "master2": "8.x-dev"
+    }
   }
 }
