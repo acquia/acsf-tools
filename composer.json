@@ -39,7 +39,7 @@
       }
     },
     "branch-alias": {
-      "master2": "8.x-dev"
+      "dev-master2": "8.x-dev"
     }
   }
 }
