@@ -18,4 +18,9 @@
   "license": "GPL-2.0+",
   "minimum-stability": "dev",
   "prefer-stable": true
+  "extra": {
+    "branch-alias": {
+      "master2": "8.x-dev"
+    }
+  }
 }
