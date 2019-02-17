@@ -33,6 +33,12 @@ class AcsfToolsUtils extends DrushCommands {
         if (!isset($sites[$site_details['name']])) {
           $sites[$site_details['name']] = $site_details;
         }
+
+        // Path domains need a trailing slash to be recognized as a drush alias.
+        if (FALSE !== strpos($domain, '/')) {
+          $domain = rtrim($domain, '/') . '/';
+        }
+
         $sites[$site_details['name']]['domains'][] = $domain;
       }
     }
