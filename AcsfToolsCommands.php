@@ -168,6 +168,12 @@ class AcsfToolsCommands extends AcsfToolsUtils {
       $drush_command_options[$key] = $value;
     }
 
+    // Command always passes the default option as `yes` irrespective if `--no`
+    // option used. Pass confirmation as `no` if use that.
+    if ($options['no']) {
+      $drush_command_options['no'] = TRUE;
+    }
+
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
       if (!empty($options['profiles'])) {
