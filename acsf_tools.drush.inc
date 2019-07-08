@@ -37,6 +37,9 @@ function acsf_tools_drush_command() {
 
   $items['acsf-tools-ml'] = array(
     'description' => dt('Runs the passed drush command against all the sites of the factory (ml stands for multiple -l option).'),
+    'options' => array(
+      'total-time-limit' => 'Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.',
+    ),
     'allow-additional-options' => TRUE,
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
     'examples' => array(
@@ -179,7 +182,7 @@ function drush_acsf_tools_ml() {
     $profiles = $profiles ? explode(',', $profiles) : NULL;
     unset($options['profiles']);
 
-    $total_time_limit = (int) drush_get_option('total-time-limit');
+    $total_time_limit = (int) drush_get_option('total-time-limit', 0);
 
     $end = time() + $total_time_limit;
     do {
@@ -221,12 +224,7 @@ function drush_acsf_tools_ml() {
         }
 
         drush_log("\n=> Running command on $domain", 'ok');
-        $output = drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
-
-        // @TODO Find a better way to remove sites from execution list.
-        if (empty($output['output'])) {
-          unset($sites[$delta]);
-        }
+        drush_invoke_process('@self', $command, $arguments, $options + array('l' => $domain));
       }
     } while ($total_time_limit && time() < $end && !empty($sites));
   }
