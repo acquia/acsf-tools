@@ -127,6 +127,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Target sites with specific profiles. Comma list.
    * @option delay
    *   Number of seconds to delay to run command between each site.
+   * @option total-time-limit
+   *   Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
@@ -139,7 +141,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Run cache clear on all sites with delay of 10 seconds between each site.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0]) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0]) {
 
     // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
@@ -183,34 +185,40 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
       $i = 0;
       $delay = $options['delay'];
-      foreach ($sites as $details) {
-        // Get the first custom domain if any. Otherwise use the first domain
-        // which is *.acsitefactory.com. Given this is used as --uri parameter
-        // by the drush command, it can have an impact on the drupal process.
-        $domain = $details['domains'][1] ?? $details['domains'][0];
+      $total_time_limit = $options['total-time-limit'];
+      $end = time() + $total_time_limit;
 
-        $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
-        if (!empty($profiles) && file_exists($site_settings_filepath)) {
-          $site_settings = @file_get_contents($site_settings_filepath);
-          if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
-            if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
-              $this->output()->writeln("\n=> Skipping command on $domain");
-              continue;
+      do {
+        foreach ($sites as $delta => $details) {
+          // Get the first custom domain if any. Otherwise use the first domain
+          // which is *.acsitefactory.com. Given this is used as --uri parameter
+          // by the drush command, it can have an impact on the drupal process.
+          $domain = $details['domains'][1] ?? $details['domains'][0];
+
+          $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
+          if (!empty($profiles) && file_exists($site_settings_filepath)) {
+            $site_settings = @file_get_contents($site_settings_filepath);
+            if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
+              if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+                $this->output()->writeln("\n=> Skipping command on $domain");
+                continue;
+              }
             }
           }
+
+          $drush_command_options['uri'] = $domain;
+
+          $this->output()->writeln("\n=> Running command on $domain");
+          drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
+
+          // Delay in running the command for next site.
+          if ($delay > 0 && $i < (count($sites) - 1)) {
+            $this->output()
+              ->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
+            sleep($delay);
+          }
         }
-
-        $drush_command_options['uri'] = $domain;
-
-        $this->output()->writeln("\n=> Running command on $domain");
-        drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
-
-        // Delay in running the command for next site.
-        if ($delay > 0 && $i < (count($sites) - 1)) {
-          $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
-          sleep($delay);
-        }
-      }
+      } while ($total_time_limit && time() < $end && !empty($sites));
     }
   }
 
