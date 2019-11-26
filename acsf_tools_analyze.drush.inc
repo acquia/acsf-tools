@@ -4,7 +4,6 @@
  * Utility commands for ACSF sites.
  */
 
-use Symfony\Component\Yaml\Yaml;
 use Drush\Log\LogLevel;
 
 /*
@@ -39,27 +38,6 @@ function acsf_tools_analyze_drush_command() {
 
   return $items;
 }
-
-/**
- * Utility function to retrieve sites information from ACSF over SSH.
- *
- * @return array|bool
- */
-/*function _drush_acsf_tools_analyze_get_sites() {
-  $sites = FALSE;
-
-
-
-  $arguments = drush_get_arguments();
-
-  $alias = $arguments[1];
-
-  //drush_shell_exec("drush $alias status --format=json > " . $info_file);
-
-  //var_dump($arguments);
-
-  return $sites;
-}*/
 
 /**
  * Validate callback for acsf-tools-analyze command.
