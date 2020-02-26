@@ -129,6 +129,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Number of seconds to delay to run command between each site.
    * @option total-time-limit
    *   Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.
+   * @option use-https
+   *   Use secure urls for drush commands.
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
@@ -139,9 +141,11 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Fetch config value in JSON format.
    * @usage drush acsf-tools-ml cr --delay=10
    *   Run cache clear on all sites with delay of 10 seconds between each site.
+   * @usage drush acsf-tools-ml cron --use-https=1
+   *   Run cron on all sites using secure url for URI.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0]) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
 
     // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
@@ -194,6 +198,11 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           // which is *.acsitefactory.com. Given this is used as --uri parameter
           // by the drush command, it can have an impact on the drupal process.
           $domain = $details['domains'][1] ?? $details['domains'][0];
+
+          if ($options['use-https']) {
+            // Use secure urls in URI to ensure base_url in Drupal uses https.
+            $domain = 'https://' . $domain;
+          }
 
           $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
           if (!empty($profiles) && file_exists($site_settings_filepath)) {
