@@ -6,11 +6,6 @@
 
 use Drush\Log\LogLevel;
 
-/*
-$sites_file = $file_prefix . "_sites.json";
-$entities_file = $file_prefix . "_entities.json";
-$views_file = $file_prefix . "_views.json";*/
-
 /**
  * Implements hook_drush_command().
  */
@@ -25,6 +20,7 @@ function acsf_tools_analyze_drush_command() {
       'format' => 'Output format. In addition to default JSON files, specified format files will be created. Supported options: csv.',
       'rebuild' => 'If set, existing JSON files with information will be rebuilt. Combined with --types option, can be used to reset specific information sets.',
       'rebuild-csv' => 'If set, existing CSV files with information will be rebuilt. Combined with --types option, can be used to reset specific CSV files.',
+      'domains' => 'Comma separated list of domains or location of a CSV file with domain names in first column of each row. Can be used to analyze non-ACSF multisites.',
     ),
     'bootstrap' => DRUSH_BOOTSTRAP_NONE,
     'examples' => array(
@@ -32,6 +28,8 @@ function acsf_tools_analyze_drush_command() {
       'drush acsf-tools-analyze @site.01dev --types=modules' => 'Extract only used modules details for all the sites of the factory.',
       'drush acsf-tools-analyze @site.01dev --types=modules --rebuild' => 'Rebuild used modules details for all the sites of the factory.',
       'drush acsf-tools-analyze @site.01dev --rebuild' => 'Rebuild information of all types for all the sites of the factory.',
+      'drush acsf-tools-analyze @site.01dev --domains=www.acquia.com,www.drupal.org' => 'Extract all details for sites with specified domains.',
+      'drush acsf-tools-analyze @site.01dev --domains=domains.csv' => 'Extract all details for sites with domains specified in domains.csv file.',
     ),
     'aliases' => ['sfa'],
   );
@@ -65,6 +63,10 @@ function drush_acsf_tools_analyze_validate() {
     }
 
     $alias = drush_acsf_tools_analyze_get_alias();
+
+    drush_log(dt("Trying to ssh into @%s using drush.", array('%s' => $alias)), LogLevel::NOTICE);
+    drush_shell_exec("drush @$alias status");
+
     $info_file = drush_acsf_tools_analyze_get_file_path('info.json');
 
     if (!file_exists($info_file)) {
@@ -442,14 +444,63 @@ function drush_acsf_tools_analyze_get_sites() {
   $alias = drush_acsf_tools_analyze_get_alias();
 
   if (!file_exists($sites_file)) {
-    drush_log(dt("File %s does not exist. Creating it.", array('%s' => $sites_file)), LogLevel::NOTICE);
+    $domains = drush_acsf_tools_analyze_get_cli_domains();
 
-    drush_shell_exec("drush @$alias php-eval 'print(file_get_contents(gardens_site_data_get_filepath()))' > $sites_file");
+    // If --domains option is not set, use ACSF to get a site list.
+    if (empty($domains)) {
+      drush_log(dt("File %s does not exist. Creating it.", array('%s' => $sites_file)), LogLevel::NOTICE);
+
+      drush_shell_exec("drush @$alias php-eval 'print(file_get_contents(gardens_site_data_get_filepath()))' > $sites_file");
+    }
+    // If domain is set, create a json file similar to ACSF sites.json file.
+    else {
+      $sites = array('sites' => array());
+
+      foreach ($domains as $i => $d) {
+        $sites['sites'][$d] = array('flags' => array('preferred_domain' => TRUE));
+      }
+
+      $sites_json = json_encode($sites, JSON_FORCE_OBJECT);
+
+      file_put_contents($sites_file, $sites_json);
+    }
+
   }
 
   $sites = json_decode(file_get_contents($sites_file), TRUE)['sites'];
 
+  if (empty($sites)) {
+    drush_set_error('SITES_INFO_NOT_AVAILABLE', dt('Sites list empty for @%s. Use --domains option if you are analyzing a multisite not hosted on ACSF.', array('%s' => $alias)));
+  }
+
   return $sites;
+}
+
+/**
+ * Get domains list from command line arguments.
+ */
+function drush_acsf_tools_analyze_get_cli_domains() {
+  $domains_input = drush_get_option('domains');
+  $domains = array();
+
+  // First check if it's a file and try to read it as CSV.
+  if (file_exists($domains_input)) {
+    $file = fopen($domains_input, 'r');
+    if (!$file) {
+      drush_set_error('DOMAINS_FILE_NOT_READABLE', dt('Could not open file %s for reading.', array('%s' => $domains)));
+    }
+    else {
+      while (($line = fgetcsv($file)) !== FALSE) {
+        $domains[] = $line[0];
+      }
+      fclose($file);
+    }
+  }
+  else {
+    $domains = explode(',', $domains);
+  }
+
+  return $domains;
 }
 
 /**
@@ -515,7 +566,7 @@ function drush_acsf_tools_analyze() {
 
   $types = drush_get_option('types');
   if (!$types) {
-    $types = 'modules,views,entities';
+    $types = 'sites,modules,views,entities';
   }
   $types = array_flip(explode(',', $types));
 
