@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Utility commands for ACSF sites.
+ * Analysis commands for ACSF sites.
  */
 
 use Drush\Log\LogLevel;
