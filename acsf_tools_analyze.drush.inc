@@ -496,8 +496,8 @@ function drush_acsf_tools_analyze_get_cli_domains() {
       fclose($file);
     }
   }
-  else {
-    $domains = explode(',', $domains);
+  elseif (!empty($domains_input)) {
+    $domains = explode(',', $domains_input);
   }
 
   return $domains;
