@@ -1,6 +1,6 @@
 <?php
 
-namespace Drush\Commands\acsf_custom;
+namespace Drush\Commands\acsf_tools;
 
 class AcsfLock {
 

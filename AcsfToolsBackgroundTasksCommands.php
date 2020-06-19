@@ -1,6 +1,6 @@
 <?php
 
-namespace Drush\Commands\acsf_custom;
+namespace Drush\Commands\acsf_tools;
 
 use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
 use Drush\Commands\DrushCommands;
