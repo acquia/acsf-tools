@@ -92,6 +92,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     // Defaults to 30 mintues.
     $lockTimeout = $options['timeout'];
 
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
+
     // TODO: DEPLOYMENT PENDING && NO SITES WITH ERRORS
     // todo: if queue X, then check errored sites, if not just the normal check.
     // Check the flag file exists / Value is 0<X<3
@@ -100,14 +103,13 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       $process = $this->checkDeploymentPending();
     }
     else {
-      $process = $this->checkDeploymentPendingAfterError();
+      $process = $this->checkDeploymentPendingAfterError($AcsfLock->doesLockExist($this->getSiteID()));
     }
 
     if ($process != TRUE) {
       $this->say('No post deployment tasks pending.');
     } else {
       $AcsfLogs = new AcsfLogs();
-      $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
       // Bootstrap Drupal.
       try {
         $this->say("\n" . $this->getCurrentTime() . " - Starting post deployment task for " . 'no_id');
@@ -125,7 +127,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
         // If Drupal can not be boostrapped, stop trying to run post deployment tasks.
         $AcsfFlags->removeFlagFile();
-        $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
         $AcsfLock->releaseLock($this->getSiteID());
         throw $exception;
       }
@@ -309,10 +310,17 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @return bool
    * @throws \Exception
    */
-  public function checkDeploymentPendingAfterError() {
+  public function checkDeploymentPendingAfterError($existsLock) {
     $pending = FALSE;
 
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,$this->getSiteID(),'/tmp/gfs/');
+    if (file_exists($AcsfFlags->getFlagfileName()) && $existsLock) {
+      $retries = intval(file_get_contents($AcsfFlags->getFlagfileName()));
 
+      if (is_int($retries) && (0 < $retries && $retries < 3)) {
+        $pending = true;
+      }
+    }
 
     return $pending;
   }
