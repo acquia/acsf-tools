@@ -16,6 +16,9 @@ directory (e.g., ~/.drush).
 
 For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
 
+Note: BackgroundTasks require building the libraries in the vendor folder using composer require.
+
+
 #### Configuration
 
 Rename acsf_tools_config.default.yml as acsf_tools_config.yml and save it in the same directory. Replace the following 
