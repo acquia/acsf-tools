@@ -1,12 +1,12 @@
 <?php declare(strict_types=1);
 
-use Drush\Commands\acsf_custom\AcsfFileManager;
+use Drush\Commands\acsf_tools\AcsfFileManager;
 use PHPUnit\Framework\TestCase;
 
 final class AcsfCustomPostDeploymentCommandsTest extends TestCase
 {
 
-  /** @var \Drush\Commands\acsf_custom\AcsfCustomPostDeploymentCommands */
+  /** @var \Drush\Commands\acsf_tools\AcsfCustomPostDeploymentCommands */
   protected $postDeployment;
 
   protected function setUp(): void
@@ -18,7 +18,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
     $_ENV['AH_SITE_ENVIRONMENT'] = 'siteenvironment';
     $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
 
-    $this->postDeployment = new Drush\Commands\acsf_custom\AcsfCustomPostDeploymentCommands();
+    $this->postDeployment = new Drush\Commands\acsf_tools\AcsfCustomPostDeploymentCommands();
   }
 
   /**
@@ -26,7 +26,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
    */
   public function testGetFlagsFolder($site, $env, $expected): void
   {
-    $AcsfFlags = new \Drush\Commands\acsf_custom\AcsfFlags($site, $env, 'anyid', '/mnt/gfs/');
+    $AcsfFlags = new \Drush\Commands\acsf_tools\AcsfFlags($site, $env, 'anyid', '/mnt/gfs/');
     $this->assertEquals(
       $expected,
       $AcsfFlags->getFlagsFolder()
@@ -121,7 +121,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
    * @dataProvider DoGetFileNames
    */
   public function testGetFileName($db_name) {
-    $AcsfFlags = new \Drush\Commands\acsf_custom\AcsfFlags('sitegroup', 'siteenv', 'ID087', '/mnt/gfs/');
+    $AcsfFlags = new \Drush\Commands\acsf_tools\AcsfFlags('sitegroup', 'siteenv', 'ID087', '/mnt/gfs/');
     echo 'filename:::: ' . $AcsfFlags->getFlagfileName($db_name);
 
     $this->assertTrue(true);
@@ -148,7 +148,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
    * Testing getLogsFolder.
    */
   public function testGetLogsFolder() {
-    $AcsfLogs = new \Drush\Commands\acsf_custom\AcsfLogs();
+    $AcsfLogs = new \Drush\Commands\acsf_tools\AcsfLogs();
     $logsFolder = $AcsfLogs->getLogsFolder($iteration = 0);
 
     $this->assertTrue(is_dir($logsFolder));
