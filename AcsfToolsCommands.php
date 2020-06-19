@@ -7,6 +7,7 @@
 namespace Drush\Commands\acsf_tools;
 
 use Drush\Drush;
+use Drush\Exceptions\UserAbortException;
 
 /**
  * A Drush commandfile.
@@ -257,6 +258,20 @@ class AcsfToolsCommands extends AcsfToolsUtils {
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
       return;
+    }
+
+    // If dump directory does not exist.
+    if (!file_exists($options['result-folder'])) {
+      $directory_message = sprintf('Dump directory "%s" does not exist. Do you want to create this directory?', $options['result-folder']);
+      if (!$this->io()->confirm($directory_message)) {
+        throw new UserAbortException();
+      }
+
+      // Create dump directory.
+      if (!mkdir($options['result-folder'], 0755, TRUE)) {
+        $this->io()->error(sprintf('Unable to create dump directory "%s"', $options['result-folder']));
+        return;
+      }
     }
 
     // Identify target folder.
