@@ -25,8 +25,9 @@
   },
   "autoload": {
     "psr-4": {
-      "Drush\\Commands\\acsf_tools\\": "."
-    }
+        "Drush\\Commands\\acsf_tools\\": "src"
+    },
+    "classmap": ["."]
   },
   "extra": {
     "installer-name": "acsf_tools",
