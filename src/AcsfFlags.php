@@ -7,22 +7,19 @@ class AcsfFlags {
   protected $flagsFolder;
   protected $site_env;
   protected $site_group;
-  protected $id;
 
   /**
    * AcsfFlags constructor.
    *
    * @param $site_group
    * @param $site_env
-   * @param $identifier
    * @param string $rootFolder
    *   Root folder including trailing slash where to store the flags.
    */
-  public function __construct($site_group, $site_env, $id, $rootFolder = '/tmp/') {
+  public function __construct($site_group, $site_env, $rootFolder = '/tmp/') {
     $this->site_env = $site_env;
     $this->site_group = $site_group;
     $this->flagsFolder = $rootFolder . $site_group . '.' . $site_env . '/flags/';
-    $this->id = $id;
 
     return $rootFolder . $site_group . '.' . $site_env . '/flags/';
   }
@@ -33,12 +30,12 @@ class AcsfFlags {
    * @return int
    * @throws \Exception
    */
-  public function getFlagCounter()
+  public function getFlagCounter($id)
   {
     $retries = false;
 
-    if (file_exists($this->getFlagFileName())) {
-      $retries = intval(file_get_contents($this->getFlagFileName()));
+    if (file_exists($this->getFlagFileName($id))) {
+      $retries = intval(file_get_contents($this->getFlagFileName($id)));
     }
 
     return $retries;
@@ -50,14 +47,14 @@ class AcsfFlags {
    * @return bool
    * @throws \Exception
    */
-  public function decreaseFlagCounter()
+  public function decreaseFlagCounter($id)
   {
     $status = false;
-    if (file_exists($this->getFlagFileName())) {
+    if (file_exists($this->getFlagFileName($id))) {
       // Decrease the counter.
-      $retries = intval(file_get_contents($this->getFlagFileName()));
+      $retries = intval(file_get_contents($this->getFlagFileName($id)));
       $retries = $retries - 1;
-      file_put_contents($this->getFlagFileName(), $retries);
+      file_put_contents($this->getFlagFileName($id), $retries);
 
       $status = true;
     }
@@ -70,10 +67,10 @@ class AcsfFlags {
    *
    * @throws \Exception
    */
-  public function removeFlagFile()
+  public function removeFlagFile($id)
   {
     // Remove the file.
-    unlink($this->getFlagFileName());
+    unlink($this->getFlagFileName($id));
 
     $fileManager = new AcsfFileManager();
     $flagsFolder = $this->getFlagsFolder();
@@ -97,9 +94,9 @@ class AcsfFlags {
    * @return string
    * @throws \Exception
    */
-  public function getFlagFileName()
+  public function getFlagFileName($id)
   {
-    return $this->getFlagsFolder() . 'post_deployment_tasks_pending_' . $this->id;
+    return $this->getFlagsFolder() . 'post_deployment_tasks_pending_' . $id;
   }
 
   /**

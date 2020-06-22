@@ -54,7 +54,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $this->initialise();
     $fileManager = new AcsfFileManager();
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
     $flagsFolder = $AcsfFlags->getFlagsFolder();
 
     if (!file_exists($flagsFolder)) {
@@ -65,7 +65,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       // Does a lock exist?
       $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
       if ($AcsfLock->doesLockExist($this->getSiteID())) {
-        $fileManager->createFile($AcsfFlags->getFlagfileName(), $options['retry-count']);
+        $fileManager->createFile($AcsfFlags->getFlagfileName($this->getSiteID()), $options['retry-count']);
       }
 
     }
@@ -92,7 +92,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     // Defaults to 30 mintues.
     $lockTimeout = $options['timeout'];
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
     $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
 
     // TODO: DEPLOYMENT PENDING && NO SITES WITH ERRORS
@@ -126,7 +126,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $AcsfLogs->writeLog($message, 'no_id', 'error');
 
         // If Drupal can not be boostrapped, stop trying to run post deployment tasks.
-        $AcsfFlags->removeFlagFile();
+        $AcsfFlags->removeFlagFile($this->getSiteID());
         $AcsfLock->releaseLock($this->getSiteID());
         throw $exception;
       }
@@ -150,8 +150,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $AcsfLock->getLock($db_name);
 
         // Decrease the flag counter.
-        $AcsfFlags->decreaseFlagCounter();
-        $counter = $AcsfFlags->getFlagCounter();
+        $AcsfFlags->decreaseFlagCounter($this->getSiteID());
+        $counter = $AcsfFlags->getFlagCounter($this->getSiteID());
 
         $this->say($this->getCurrentTime() . ' - Starting post deployment tasks.');
         $this->say('Retries left (excluding this run): ' . $counter);
@@ -185,7 +185,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
               . "Script output: " . $data
               . "Script error output:\n$errorOutput", $db_name, 'success');
 
-            $AcsfFlags->removeFlagFile();
+            $AcsfFlags->removeFlagFile($this->getSiteID());
             $AcsfLock->releaseLock($db_name);
           } else {
             $errorOutput = $process->getErrorOutput();
@@ -199,7 +199,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
           // Remove flag file if there are no more retries left.
           if ($counter === 0) {
-            $AcsfFlags->removeFlagFile();
+            $AcsfFlags->removeFlagFile($this->getSiteID());
             $AcsfLock->releaseLock($db_name);
           }
         } catch (Exception $exception) {
@@ -220,9 +220,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   /**
    * Fetch current status.
    *
-   * @command acsf-custom:post-deployment-tasks-status
+   * @command acsf-tools:post-deployment-tasks-status
    *
-   * @usage acsf-custom:post-deployment-tasks-status
+   * @usage acsf-tools:post-deployment-tasks-status
    *
    * @field-labels
    *   name: Name
@@ -281,7 +281,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       ];
     }
 
-    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
     $v = $this->AcsfExecute("cd $gfsFlagsFolder;ls ./*.lock 2>/dev/null | wc -l;", "");
@@ -364,9 +364,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   /**
    * Fetch current status for each site.
    *
-   * @command acsf-custom:post-deployment-sites-status
+   * @command acsf-tools:post-deployment-sites-status
    *
-   * @usage acsf-custom:post-deployment-sites-status
+   * @usage acsf-tools:post-deployment-sites-status
    *
    * @field-labels
    *   name: Name
@@ -398,11 +398,14 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     // We need to initialise folders.
     $this->initialise();
 
-    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
     $acsfLogs = new AcsfLogs();
     $logsFolder = $acsfLogs->getLastLogsFolder($options['date'], $options['iteration']);
+
+    echo 'flagsfolder:' . $gfsFlagsFolder;
+
 
     if ($logsFolder === NULL) {
       $this->say('Logs folder not found.');
@@ -561,9 +564,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   {
     $pending = false;
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,$this->getSiteID(),'/tmp/gfs/');
-    if (file_exists($AcsfFlags->getFlagfileName())) {
-      $retries = intval(file_get_contents($AcsfFlags->getFlagfileName()));
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
+    if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID()))) {
+      $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
       if (is_int($retries) && $retries > 0) {
         $pending = true;
@@ -582,9 +585,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   public function checkDeploymentPendingAfterError($existsLock) {
     $pending = FALSE;
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,$this->getSiteID(),'/tmp/gfs/');
-    if (file_exists($AcsfFlags->getFlagfileName()) && $existsLock) {
-      $retries = intval(file_get_contents($AcsfFlags->getFlagfileName()));
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
+    if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID())) && $existsLock) {
+      $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
       if (is_int($retries) && (0 < $retries && $retries < 3)) {
         $pending = true;
@@ -603,7 +606,12 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   // TODO: siteID can clash with ACSF
   public function getSiteID()
   {
-    $dbname = $GLOBALS['gardens_site_settings']['conf']['acsf_db_name'];
+    // This could benefit of caching.
+    $dbname = null;
+    if ($sql = SqlBase::create([])) {
+      $db_spec = $sql->getDbSpec();
+      $dbname = isset($db_spec['database']) ? $db_spec['database'] : null;
+    }
 
     return $dbname;
   }
