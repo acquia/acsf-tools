@@ -603,12 +603,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   // TODO: siteID can clash with ACSF
   public function getSiteID()
   {
-    // This could benefit of caching.
-    $dbname = null;
-    if ($sql = SqlBase::create([])) {
-      $db_spec = $sql->getDbSpec();
-      $dbname = isset($db_spec['database']) ? $db_spec['database'] : null;
-    }
+    $dbname = $GLOBALS['gardens_site_settings']['conf']['acsf_db_name'];
 
     return $dbname;
   }
