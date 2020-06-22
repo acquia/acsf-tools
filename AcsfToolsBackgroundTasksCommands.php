@@ -236,13 +236,13 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    *
    * @throws \Exception
    */
-  public function fetchDeploymentStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
+  public function fetchDeploymentStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => 0]) {
     if ($options['date'] === NULL) {
       $options['date'] = date("Ymd", time());
     }
 
     // 0 passed in this option becomes FALSE. We want 0;
-    if ($options['iteration'] === FALSE) {
+    if ($options['iteration'] === NULL) {
       $options['iteration'] = 0;
     }
 
