@@ -69,13 +69,59 @@ class AcsfLogs extends DrushCommands {
       $fileManager = new AcsfFileManager();
       $fileManager->createFile($logsFolder . '/' . $this::START_LOG_MARKER, date("c", time()));
     }
-    else {
-      if (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
-        // FINISH_LOG_MARKER indicate that a previous deployment has finished.
-        // If so, then increase iteration variable $iteration.
-        $logsFolder = $this->getLogsFolder($iteration + 1, $createFolder);
+    elseif (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
+      // FINISH_LOG_MARKER indicate that a previous deployment has finished.
+      // If so, then increase iteration variable $iteration.
+      $logsFolder = $this->getLogsFolder($iteration + 1);
 
-        // TODO: Send files zipped in the logs folder.
+      // TODO: Send files zipped in the logs folder.
+    }
+    elseif (!file_exists($logsFolder)) {
+      $logsFolder = $this->getLogsFolder($iteration, TRUE);
+    }
+
+    return $logsFolder;
+  }
+
+  /**
+   * Get folder where last logs are stored.
+   *
+   * @param $site_group
+   * @param $site_env
+   * @param $date
+   * @param int $iteration
+   *
+   * @return string
+   */
+  public function getLastLogsFolder($date = NULL, $iteration = NULL) {
+    $site_env = $this->site_env;
+    $site_group = $this->site_group;
+
+    if ($date == NULL) {
+      $date = date("Ymd", time());
+    }
+
+    $logsFolder = NULL;
+    $prefix = "/mnt/gfs/$site_group.$site_env/logs/large_scale_cron_" . $date . "_";
+
+    if ($iteration !== NULL) {
+      $logsFolder = $prefix . $iteration . "/";
+    }
+    else {
+      for ($i=0; $i<99999; $i++) {
+        $currentLogsFolder = $prefix . $i . "/";
+        $nextLogsFolder = $prefix . ($i + 1) . "/";
+
+        if (file_exists($currentLogsFolder) && !file_exists($nextLogsFolder)) {
+          $logsFolder = $currentLogsFolder;
+          break;
+        }
+        elseif (file_exists($nextLogsFolder)) {
+          continue;
+        }
+        else {
+          break;
+        }
       }
     }
 

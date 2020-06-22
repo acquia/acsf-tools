@@ -3,6 +3,7 @@
 namespace Drush\Commands\acsf_tools;
 
 use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
+use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drush\Commands\DrushCommands;
 use Drush\Drush;
 use Drush\SiteAlias\SiteAliasManagerAwareInterface;
@@ -81,7 +82,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    *
    * @throws \Exception
    */
-  // TODO: rename to runBbackgroundTasks
   public function runBackgroundTasks($options = [
     'timeout' => 1800,
     'script' => null,
@@ -218,41 +218,310 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   }
 
   /**
-   * Fetch current status deployment.
+   * Fetch current status.
    *
-   * @command acsf-tools:background-tasks-status
-   * @usage acsf-tools:background-tasks-status
-   *   Testing.
+   * @command acsf-custom:post-deployment-tasks-status
+   *
+   * @usage acsf-custom:post-deployment-tasks-status
+   *
+   * @field-labels
+   *   name: Name
+   *   value: Value
+   *   description: Description
+   *
+   * @default-fields name,value,description
+   *
+   * @filter-default-field name
+   * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
+   *
    * @throws \Exception
    */
-  public function fetchDeploymentStatus() {
+  public function fetchDeploymentStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
+    if ($options['date'] === NULL) {
+      $options['date'] = date("Ymd", time());
+    }
+
+    // 0 passed in this option becomes FALSE. We want 0;
+    if ($options['iteration'] === FALSE) {
+      $options['iteration'] = 0;
+    }
+
+    $results = array();
+
     // We need to initialise folders.
     $this->initialise();
 
-    $AcsfLogs = new AcsfLogs();
-    $logsFolder = $AcsfLogs->getLogsFolder(0,FALSE);
+    $acsfLogs = new AcsfLogs();
+    $logsFolder = $acsfLogs->getLastLogsFolder($options['date'], $options['iteration']);
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(),'/tmp/gfs/');
-    $gfsFlagsFolder = $AcsfFlags->getFlagsFolder();
+    if ($logsFolder === NULL) {
+      $this->say('Logs folder not found.');
+    }
+    else {
+      $f = $acsfLogs::START_LOG_MARKER;
+      $v = $this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", "");
+      $results[] = [
+        'name' => 'Deployment started',
+        'value' => trim($v),
+        'description' => '',
+      ];
 
-    // TODO: REMOVE ECHO WITH YELL.
-    echo PHP_EOL . "| ====== ONGOING DEPLOYMENT STATUS ======= " . PHP_EOL;
-    echo $this->AcsfExecute("cd $logsFolder; ls ./*.success.log 2>/dev/null | wc -l;", "| Success log file count: ");
-    echo $this->AcsfExecute("cd $logsFolder;ls ./*.error.log 2>/dev/null | wc -l;", "| Error log file count: ");
-    echo $this->AcsfExecute("cd $gfsFlagsFolder;ls ./*.lock 2>/dev/null | wc -l;", "| Lock file count: ");
+      $v = $this->AcsfExecute("cd $logsFolder; ls ./*.success.log 2>/dev/null | wc -l;", "");
+      $results[] = [
+        'name' => 'Successes',
+        'value' => trim($v),
+        'description' => 'How many sites have been successfully processed. Counts success log files.',
+      ];
 
-    // TODO: is the site still in maintenance mode?
+      $v = $this->AcsfExecute("cd $logsFolder;ls ./*.error.log 2>/dev/null | wc -l;", "");
+      $results[] = [
+        'name' => 'Errors',
+        'value' => trim($v),
+        'description' => 'How many tasks executions have resulted in errors. Counts error log files.',
+      ];
+    }
 
-    echo $this->AcsfExecute("ls $gfsFlagsFolder | wc -l; ", "| Flag file count: " );
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
-    echo $this->AcsfExecute("cat $gfsFlagsFolder/* 2>/dev/null;", "| Content of flag files: ");
-    echo PHP_EOL;
-    echo "| ---- NOTE ON FLAG FILES: ----" . PHP_EOL;
-    echo "| 1 - second processing started after an error" . PHP_EOL;
-    echo "| 2 - first processing started or first processing finished with an error (second processing has not been started)" . PHP_EOL;
-    echo "| 3 - means processing has not started" . PHP_EOL;
-    echo " ---------------------------------------- " . PHP_EOL;
+    $v = $this->AcsfExecute("cd $gfsFlagsFolder;ls ./*.lock 2>/dev/null | wc -l;", "");
+    $results[] = [
+      'name' => 'Sites being processed',
+      'value' => trim($v),
+      'description' => 'Lock file count.',
+    ];
 
+    $v = $this->AcsfExecute("ls $gfsFlagsFolder | grep -v lock | wc -l;", "");
+    $results[] = [
+      'name' => 'Sites with pending tasks',
+      'value' => trim($v),
+      'description' => 'Flag file count.',
+    ];
+
+    $v = $this->AcsfExecute("grep 3 $gfsFlagsFolder/* 2>/dev/null | wc -l;", "");
+    $results[] = [
+      'name' => 'Pending',
+      'value' => trim($v),
+      'description' => 'Sites with tasks pending and processing not started yet.',
+    ];
+
+    $v = $this->AcsfExecute("grep 2 $gfsFlagsFolder/* 2>/dev/null | wc -l;", "");
+    $results[] = [
+      'name' => 'Processing now or failed once',
+      'value' => trim($v),
+      'description' => 'Sites with tasks being executed first time or have failed once.',
+    ];
+
+    $v = $this->AcsfExecute("grep 1 $gfsFlagsFolder/* 2>/dev/null | wc -l;", "");
+    $results[] = [
+      'name' => 'Failed two times',
+      'value' => trim($v),
+      'description' => 'Sites with tasks processing failed two times.',
+    ];
+
+    $v = $this->AcsfExecute("grep 0 $gfsFlagsFolder/* 2>/dev/null | wc -l;", "");
+    $results[] = [
+      'name' => 'Failed two times and processing',
+      'value' => trim($v),
+      'description' => 'Sites with tasks processing failed two times and processing is happening now.',
+    ];
+
+    $v = $this->AcsfExecute("cat $gfsFlagsFolder/* 2>/dev/null;", "");
+    $results[] = [
+      'name' => 'Content of flag files',
+      'value' => trim($v),
+      'description' => "0 - third processing started after 2 errors" . PHP_EOL .
+                       "1 - second processing started after 1 error" . PHP_EOL .
+                       "2 - first processing started or first processing finished with an error (second processing has not been started)" . PHP_EOL .
+                       "3 - processing has not started",
+    ];
+
+    if ($logsFolder !== NULL) {
+      $f = $acsfLogs::FINISH_LOG_MARKER;
+      $v = $this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", "");
+      $results[] = [
+        'name' => 'Deployment finished',
+        'value' => trim($v),
+        'description' => '',
+      ];
+    }
+
+    $results[] = [
+      'name' => 'Flag files location',
+      'value' => $gfsFlagsFolder,
+      'description' => '',
+    ];
+
+    $results[] = [
+      'name' => 'Log files location',
+      'value' => $logsFolder,
+      'description' => '',
+    ];
+
+    return new RowsOfFields($results);
+  }
+
+  /**
+   * Fetch current status for each site.
+   *
+   * @command acsf-custom:post-deployment-sites-status
+   *
+   * @usage acsf-custom:post-deployment-sites-status
+   *
+   * @field-labels
+   *   name: Name
+   *   success: Success log count
+   *   error: Error log count
+   *   flag: Flag file content
+   *   lock: Lock file exists
+   *   value: Other value
+   *
+   * @default-fields name,success,error,flag,lock,value
+   *
+   * @filter-default-field name
+   * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
+   *
+   * @throws \Exception
+   */
+  public function fetchDeploymentSitesStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
+    if ($options['date'] === NULL) {
+      $options['date'] = date("Ymd", time());
+    }
+
+    // 0 passed in this option becomes FALSE. We want 0;
+    if ($options['iteration'] === FALSE) {
+      $options['iteration'] = 0;
+    }
+
+    $results = array();
+
+    // We need to initialise folders.
+    $this->initialise();
+
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, $this->getSiteID(), '/tmp/gfs/');
+    $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
+
+    $acsfLogs = new AcsfLogs();
+    $logsFolder = $acsfLogs->getLastLogsFolder($options['date'], $options['iteration']);
+
+    if ($logsFolder === NULL) {
+      $this->say('Logs folder not found.');
+    }
+    else {
+      // $acsfUtils = new AcsfToolsUtils();
+      $sites = array();
+
+      $successLogSuffix = '.success.log';
+      $errorLogSuffix = '.error.log';
+      $logs = scandir($logsFolder);
+
+      foreach ($logs as $log) {
+        // Check if it is a success log.
+        if (substr_compare($log, $successLogSuffix, strlen($log)-strlen($successLogSuffix), strlen($successLogSuffix)) === 0) {
+          $type = 'success';
+        }
+        // Check if it's an error log.
+        elseif (substr_compare($log, $errorLogSuffix, strlen($log)-strlen($errorLogSuffix), strlen($errorLogSuffix)) === 0) {
+          $type = 'error';
+        }
+        else {
+          $type = 'other';
+        }
+
+        if ($type == 'success' || $type == 'error') {
+          $split = explode('-', $log);
+          $siteDb = $split[0];
+
+          if (!isset($sites[$siteDb])) {
+            $sites[$siteDb] = array(
+              'success' => 0,
+              'error' => 0,
+            );
+          }
+
+          if ($type == 'success') {
+            $sites[$siteDb]['success'] += 1;
+          }
+          elseif ($type == 'error') {
+            $sites[$siteDb]['error'] += 1;
+          }
+
+          if (file_exists($gfsFlagsFolder . $siteDb)) {
+            $sites[$siteDb]['flag'] = file_get_contents($gfsFlagsFolder . $siteDb);
+          }
+
+          if (file_exists($gfsFlagsFolder . $siteDb . '.lock')) {
+            $sites[$siteDb]['lock'] = 1;
+          }
+        }
+      }
+
+      $totals = array(
+        'success' => 0,
+        'error' => 0,
+        'success_error' => 0,
+        'flag' => 0,
+        'lock' => 0,
+      );
+
+      foreach ($sites as $site => $v) {
+        $results[] = [
+          'name' => $site,
+          'success' => $v['success'],
+          'error' => $v['error'],
+          'flag' => $v['flag'],
+          'lock' => $v['lock'],
+          'value' => '',
+        ];
+
+        if ($v['success'] > 0 && $v['error'] == 0) {
+          $totals['success']++;
+        }
+
+        if ($v['error'] > 0 && $v['success'] == 0) {
+          $totals['error']++;
+        }
+
+        if ($v['error'] > 0 && $v['success'] > 0) {
+          $totals['success_error']++;
+        }
+
+        if ($v['flag'] > 0) {
+          $totals['flag']++;
+        }
+
+        if ($v['lock'] > 0) {
+          $totals['lock']++;
+        }
+      }
+
+      $results[] = [
+        'name' => 'Total sites with success log',
+        'value' => $totals['success'],
+      ];
+
+      $results[] = [
+        'name' => 'Total sites with error log',
+        'value' => $totals['error'],
+      ];
+
+      $results[] = [
+        'name' => 'Total sites with success and error log',
+        'value' => $totals['success_error'],
+      ];
+
+      $results[] = [
+        'name' => 'Total sites with tasks pending',
+        'value' => $totals['flag'],
+      ];
+
+      $results[] = [
+        'name' => 'Total sites with tasks being executed',
+        'value' => $totals['lock'],
+      ];
+    }
+
+    return new RowsOfFields($results);
   }
 
   /**
