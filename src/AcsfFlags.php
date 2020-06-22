@@ -102,11 +102,6 @@ class AcsfFlags {
   /**
    * Return the flags folder.
    *
-   * @param $site_group
-   *   Group site, normally AH_SITE_GROUP
-   * @param $site_env
-   *   Environment, normally AH_SITE_ENVIRONMENT
-   *
    * @return string
    *   Flags folder.
    */

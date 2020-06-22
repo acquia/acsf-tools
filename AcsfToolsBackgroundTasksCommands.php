@@ -54,7 +54,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $this->initialise();
     $fileManager = new AcsfFileManager();
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
     $flagsFolder = $AcsfFlags->getFlagsFolder();
 
     if (!file_exists($flagsFolder)) {
@@ -92,7 +92,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     // Defaults to 30 mintues.
     $lockTimeout = $options['timeout'];
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
     $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
 
     // TODO: DEPLOYMENT PENDING && NO SITES WITH ERRORS
@@ -281,7 +281,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       ];
     }
 
-    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
     $v = $this->AcsfExecute("cd $gfsFlagsFolder;ls ./*.lock 2>/dev/null | wc -l;", "");
@@ -398,7 +398,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     // We need to initialise folders.
     $this->initialise();
 
-    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/tmp/gfs/');
+    $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
     $acsfLogs = new AcsfLogs();
@@ -564,7 +564,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   {
     $pending = false;
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
     if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID()))) {
       $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
@@ -585,7 +585,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   public function checkDeploymentPendingAfterError($existsLock) {
     $pending = FALSE;
 
-    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/tmp/gfs/');
+    $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
     if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID())) && $existsLock) {
       $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
