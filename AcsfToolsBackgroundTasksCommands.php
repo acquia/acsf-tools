@@ -21,14 +21,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   private $site_env = NULL;
   private $mnt_folder = NULL;
 
-  /**
-   * Initisalise variables that are going to be needed.
-   *
-   * We are not using a constructor instead for performance reasons. We can
-   * also call this only when strictly necessary.
-   */
-  public function initialise()
-  {
+  public function __construct() {
+    parent::__construct();
+
     if ($this->site_group == NULL) {
       $this->site_group = $_ENV['AH_SITE_GROUP'];
     }
@@ -51,7 +46,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    */
   public function setBackgroundTasksPending($options = ['retry-count' => 3, 'rootfolder' => null,])
   {
-    $this->initialise();
     $fileManager = new AcsfFileManager();
 
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
@@ -140,7 +134,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $uri = $selfConfig['options']['uri'];
         $root = $selfConfig['options']['root'];
 
-        $this->initialise();
         $site_group = $this->site_group;
         $site_env = $this->site_env;
         $db_name = $this->getSiteID();
@@ -247,9 +240,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     }
 
     $results = array();
-
-    // We need to initialise folders.
-    $this->initialise();
 
     $acsfLogs = new AcsfLogs();
     $logsFolder = $acsfLogs->getLogsFolder($options['iteration']);
@@ -394,9 +384,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     }
 
     $results = array();
-
-    // We need to initialise folders.
-    $this->initialise();
 
     $acsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
@@ -564,8 +551,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   public function checkDeploymentPending()
   {
     $pending = false;
-
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
+
     if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID()))) {
       $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
