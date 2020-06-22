@@ -19,7 +19,7 @@ class AcsfLogs extends DrushCommands {
     $this->site_group = $_ENV['AH_SITE_GROUP'];
     $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
 
-    $this->setRootLogsFolder("/mnt/gfs/$this->site_env.$this->site_group/logs/large_scale_cron_" . date("Ymd", time()));
+    $this->setRootLogsFolder("/mnt/gfs/$this->site_group.$this->site_env/logs/large_scale_cron_" . date("Ymd", time()));
   }
 
   /**
