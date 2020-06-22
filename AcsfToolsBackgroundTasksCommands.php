@@ -120,8 +120,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $AcsfLogs->writeLog($message, 'no_id', 'error');
 
         // If Drupal can not be boostrapped, stop trying to run post deployment tasks.
-        $AcsfFlags->removeFlagFile($this->getSiteID());
         $AcsfLock->releaseLock($this->getSiteID());
+        $AcsfFlags->removeFlagFile($this->getSiteID());
         throw $exception;
       }
 
@@ -178,8 +178,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
               . "Script output: " . $data
               . "Script error output:\n$errorOutput", $db_name, 'success');
 
-            $AcsfFlags->removeFlagFile($this->getSiteID());
             $AcsfLock->releaseLock($db_name);
+            $AcsfFlags->removeFlagFile($this->getSiteID());
           } else {
             $errorOutput = $process->getErrorOutput();
             $AcsfLogs->writeLog('Script finished with error code: '
@@ -192,8 +192,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
           // Remove flag file if there are no more retries left.
           if ($counter === 0) {
-            $AcsfFlags->removeFlagFile($this->getSiteID());
             $AcsfLock->releaseLock($db_name);
+            $AcsfFlags->removeFlagFile($this->getSiteID());
           }
         } catch (Exception $exception) {
           $AcsfLogs->writeLog($this->getCurrentTime() . " - Exception happened: " . $exception, $db_name);
@@ -594,14 +594,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   // TODO: siteID can clash with ACSF
   public function getSiteID()
   {
-    // This could benefit of caching.
-    $dbname = null;
-    if ($sql = SqlBase::create([])) {
-      $db_spec = $sql->getDbSpec();
-      $dbname = isset($db_spec['database']) ? $db_spec['database'] : null;
-    }
-
-    return $dbname;
+    return $GLOBALS['gardens_site_settings']['conf']['acsf_db_name'];
   }
 
 }
