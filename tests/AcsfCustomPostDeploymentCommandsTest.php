@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 final class AcsfCustomPostDeploymentCommandsTest extends TestCase
 {
 
-  /** @var \Drush\Commands\acsf_tools\AcsfCustomPostDeploymentCommands */
+  /** @var \Drush\Commands\acsf_tools\AcsfToolsBackgroundTasksCommands */
   protected $postDeployment;
 
   protected function setUp(): void
@@ -18,7 +18,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
     $_ENV['AH_SITE_ENVIRONMENT'] = 'siteenvironment';
     $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
 
-    $this->postDeployment = new Drush\Commands\acsf_tools\AcsfCustomPostDeploymentCommands();
+    $this->postDeployment = new \Drush\Commands\acsf_tools\AcsfToolsBackgroundTasksCommands();
   }
 
   /**
@@ -26,7 +26,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
    */
   public function testGetFlagsFolder($site, $env, $expected): void
   {
-    $AcsfFlags = new \Drush\Commands\acsf_tools\AcsfFlags($site, $env, 'anyid', '/mnt/gfs/');
+    $AcsfFlags = new \Drush\Commands\acsf_tools\AcsfFlags($site,$env, '/mnt/gfs/');
     $this->assertEquals(
       $expected,
       $AcsfFlags->getFlagsFolder()

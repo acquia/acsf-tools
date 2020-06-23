@@ -7,7 +7,6 @@ use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drush\Commands\DrushCommands;
 use Drush\Drush;
 use Drush\SiteAlias\SiteAliasManagerAwareInterface;
-use Drush\Sql\SqlBase;
 use Exception;
 
 /**
@@ -56,12 +55,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     }
 
     if ($this->getSiteID()) {
-      // Does a lock exist?
-      $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
-      if ($AcsfLock->doesLockExist($this->getSiteID())) {
-        $fileManager->createFile($AcsfFlags->getFlagfileName($this->getSiteID()), $options['retry-count']);
-      }
-
+      $fileManager->createFile($AcsfFlags->getFlagfileName($this->getSiteID()), $options['retry-count']);
     }
   }
 
