@@ -391,10 +391,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $acsfLogs = new AcsfLogs();
     $logsFolder = $acsfLogs->getLastLogsFolder($options['date'], $options['iteration']);
 
-    echo 'flagsfolder:' . $gfsFlagsFolder;
-    echo 'logsFolder:' . $logsFolder;
-
-
     if ($logsFolder === NULL) {
       $this->say('Logs folder not found.');
     }

@@ -6,6 +6,11 @@ class AcsfLock {
 
   private $flagsFolder = "/tmp/";
 
+  /**
+   * AcsfLock constructor.
+   *
+   * @param $folder
+   */
   public function __construct($folder) {
     $this->flagsFolder = $folder;
   }
@@ -21,13 +26,25 @@ class AcsfLock {
   }
 
   /**
+   * Release the lock removing the lock file.
+   *
    * @param $id
    */
   public function releaseLock($id) {
+    if ($this->doesLockExist($id)) {
       unlink($this->flagsFolder . $id . ".lock");
+    }
   }
 
+  /**
+   * Check if the lock for a given $id exists.
+   *
+   * @param $id
+   *   Lock id to check.
+   *
+   * @return string
+   */
   public function doesLockExist($id) {
-    return $this->flagsFolder . $id;
+    return (is_file($this->flagsFolder . $id . ".lock"));
   }
 }
