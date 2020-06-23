@@ -69,12 +69,9 @@ class AcsfLogs extends AcsfToolsUtils {
     elseif (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
       // FINISH_LOG_MARKER indicate that a previous deployment has finished.
       // If so, then increase iteration variable $iteration.
-      $logsFolder = $this->getLogsFolder($iteration + 1);
+      $logsFolder = $this->getLogsFolder($iteration + 1, $createFolder);
 
       // TODO: Send files zipped in the logs folder.
-    }
-    elseif (!file_exists($logsFolder)) {
-      $logsFolder = $this->getLogsFolder($iteration, TRUE);
     }
 
     return $logsFolder;
