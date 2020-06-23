@@ -69,7 +69,7 @@ class AcsfToolsUtils extends DrushCommands {
   public function promptConfirm() {
 
     $this->output()->writeln(
-      dt('You are about to run a command on all the sites of your factory. 
+      dt('You are about to run a command on all the sites of your factory.
         Do you confirm you want to do that? If so, type \'yes\''));
     if (!$this->io()->confirm(dt('Do you want to continue?'))) {
       throw new UserAbortException();
@@ -126,6 +126,7 @@ class AcsfToolsUtils extends DrushCommands {
     $config->subdomain_pattern = $yaml['subdomain_pattern'];
     $config->prod_web = $yaml['prod_web'];
     $config->dev_web = $yaml['dev_web'];
+    $config->email_logs = $yaml['email_logs'];
 
     return $config;
   }

@@ -8,3 +8,4 @@ rest_factories:
 subdomain_pattern: '{subdomain}-{env}'
 prod_web: ''
 dev_web: ''
+email_logs: 'alejandro.moreno@acquia.com,alex.ku@acquia.com'

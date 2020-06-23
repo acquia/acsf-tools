@@ -2,9 +2,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
-use Drush\Commands\DrushCommands;
-
-class AcsfLogs extends DrushCommands {
+class AcsfLogs extends AcsfToolsUtils {
 
   const START_LOG_MARKER = "post_deployment_tasks.start.log";
   const FINISH_LOG_MARKER = "post_deployment_tasks.finish.log";
@@ -135,6 +133,7 @@ class AcsfLogs extends DrushCommands {
    */
   public function createFinishMarker() {
     $this->yell("Creating finish marker:: " . $this->getLogsFolder() . $this::FINISH_LOG_MARKER);
+
     $fileManager = new AcsfFileManager();
     $fileManager->createFile($this->getLogsFolder() . $this::FINISH_LOG_MARKER, date("c", time()));
   }
@@ -188,17 +187,13 @@ class AcsfLogs extends DrushCommands {
   public function emailLogs($message, $subject, array $emailList = null)
   {
     if ($emailList == null) {
-      // TODO: Move to secrets.settings
-      require_once("../config.php");
+      $config = $this->getRestConfig();
+      $email_list = $config->email_logs;
     }
 
-    // Get and remove the first email off the list.
-    $to = array_shift($email_list);
-
-    $plain_email_list = implode(",", $email_list);
-    $headers = "From: acsf-deployment-error@acquia.com" . "\r\n" .
-      "CC: $plain_email_list";
-    mail($to, $subject, $message, $headers);
+    $headers = "From: no-reply-acsf-deployment-logs@example.com" . "\r\n" .
+      "CC: ";
+    mail($email_list, $subject, $message, $headers);
   }
 
 }

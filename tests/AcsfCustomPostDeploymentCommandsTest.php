@@ -32,7 +32,6 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
       $AcsfFlags->getFlagsFolder()
     );
 
-    echo "folder:::::" . $AcsfFlags->getFlagsFolder();
   }
 
   /**
@@ -122,7 +121,6 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
    */
   public function testGetFileName($db_name) {
     $AcsfFlags = new \Drush\Commands\acsf_tools\AcsfFlags('sitegroup', 'siteenv', 'ID087', '/mnt/gfs/');
-    echo 'filename:::: ' . $AcsfFlags->getFlagfileName($db_name);
 
     $this->assertTrue(true);
   }
