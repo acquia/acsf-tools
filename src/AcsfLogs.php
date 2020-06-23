@@ -58,7 +58,6 @@ class AcsfLogs extends AcsfToolsUtils {
     $logsFolder = $this->getRootLogsFolder() . "_$iteration/";
 
     if (!file_exists($logsFolder) && $createFolder == TRUE) {
-      //      $this->writeLog($this->getCurrentTime() . " - Starting deployment. ", $this::START_LOG_MARKER);
       mkdir($logsFolder, 0770, true);
 
       // Write the start log marker, so we know deployment has started.
@@ -132,10 +131,10 @@ class AcsfLogs extends AcsfToolsUtils {
    * @throws \Exception
    */
   public function createFinishMarker() {
-    $this->yell("Creating finish marker:: " . $this->getLogsFolder() . $this::FINISH_LOG_MARKER);
+    $this->yell("Creating finish marker:: " . $this->getLogsFolder(0, FALSE) . $this::FINISH_LOG_MARKER);
 
     $fileManager = new AcsfFileManager();
-    $fileManager->createFile($this->getLogsFolder() . $this::FINISH_LOG_MARKER, date("c", time()));
+    $fileManager->createFile($this->getLogsFolder(0, FALSE) . $this::FINISH_LOG_MARKER, date("c", time()));
   }
 
   /**

@@ -144,6 +144,8 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
 
   /**
    * Testing getLogsFolder.
+   *
+   * @throws \Exception
    */
   public function testGetLogsFolder() {
     $AcsfLogs = new \Drush\Commands\acsf_tools\AcsfLogs();
