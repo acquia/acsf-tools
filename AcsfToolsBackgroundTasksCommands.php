@@ -238,7 +238,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $results = array();
 
     $acsfLogs = new AcsfLogs();
-    $logsFolder = $acsfLogs->getLastLogsFolderRecursive($options['date'], $options['iteration']);
+    $logsFolder = $acsfLogs->getLastLogsFolderRecursive($options['date'], $options['iteration'], FALSE);
 
     if ($logsFolder === NULL) {
       $this->say('Logs folder not found.');
@@ -484,7 +484,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $gfsFlagsFolder = $acsfFlags->getFlagsFolder();
 
     $acsfLogs = new AcsfLogs();
-    $logsFolder = $acsfLogs->getLastLogsFolderRecursive($date, $iteration);
+    $logsFolder = $acsfLogs->getLastLogsFolderRecursive($date, $iteration, FALSE);
 
     if ($logsFolder === NULL) {
       $this->say('Logs folder not found.');
