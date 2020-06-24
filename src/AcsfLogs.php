@@ -10,6 +10,7 @@ class AcsfLogs extends AcsfToolsUtils {
   private $root_logs_folder = NULL;
   private $site_env;
   private $site_group;
+  private $root_folder_no_date;
 
   public function __construct() {
     parent::__construct();
@@ -18,6 +19,7 @@ class AcsfLogs extends AcsfToolsUtils {
     $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
 
     $this->setRootLogsFolder("/mnt/gfs/$this->site_group.$this->site_env/logs/large_scale_cron_" . date("Ymd", time()));
+    $this->root_folder_no_date = "/mnt/gfs/$this->site_group.$this->site_env/logs/large_scale_cron_";
   }
 
   /**
@@ -50,12 +52,17 @@ class AcsfLogs extends AcsfToolsUtils {
    * @return string
    * @throws \Exception
    */
-  public function getLogsFolder($iteration = 0, $createFolder = TRUE) {
+  public function getLogsFolder($iteration = 0, $createFolder = TRUE, $date = NULL) {
     if (!is_integer($iteration)) {
       throw new \Exception("Iteration must be an integer");
     }
 
     $logsFolder = $this->getRootLogsFolder() . "_$iteration/";
+
+    if ($date != NULL) {
+      $logsFolder = $this->root_folder_no_date . $date . "_$iteration/";
+    }
+
 
     if (!file_exists($logsFolder) && $createFolder == TRUE) {
       mkdir($logsFolder, 0770, true);
@@ -72,6 +79,9 @@ class AcsfLogs extends AcsfToolsUtils {
       $logsFolder = $this->getLogsFolder($iteration + 1, $createFolder);
 
       // TODO: Send files zipped in the logs folder.
+    }
+    elseif (!file_exists($logsFolder)) {
+      $logsFolder = '';
     }
 
     return $logsFolder;

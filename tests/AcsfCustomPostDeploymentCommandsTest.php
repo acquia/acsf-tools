@@ -143,22 +143,6 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
   }
 
   /**
-   * Testing getLogsFolder.
-   *
-   * @throws \Exception
-   */
-  public function testGetLogsFolder() {
-    $AcsfLogs = new \Drush\Commands\acsf_tools\AcsfLogs();
-    $logsFolder = $AcsfLogs->getLogsFolder($iteration = 0);
-
-    $this->assertTrue(is_dir($logsFolder));
-
-    // Test if finish is created and starts a new folder.
-//    file_put_contents($logsFolder . $this->postDeployment::FINISH_LOG_MARKER, "created");
-
-  }
-
-  /**
    * Test if folders are empty.
    *
    * @dataProvider DoGetEmptyFolders
