@@ -36,6 +36,16 @@ class AcsfLogs extends AcsfToolsUtils {
    * Initialise root folder.
    *
    * @param $folder
+   */
+  public function setRootNoDateLogsFolder($folder)
+  {
+    $this->root_folder_no_date = $folder;
+  }
+
+  /**
+   * Initialise root folder.
+   *
+   * @param $folder
    *
    * @return null
    */
@@ -52,17 +62,12 @@ class AcsfLogs extends AcsfToolsUtils {
    * @return string
    * @throws \Exception
    */
-  public function getLogsFolder($iteration = 0, $createFolder = TRUE, $date = NULL) {
+  public function getLogsFolder($iteration = 0, $createFolder = TRUE) {
     if (!is_integer($iteration)) {
       throw new \Exception("Iteration must be an integer");
     }
 
     $logsFolder = $this->getRootLogsFolder() . "_$iteration/";
-
-    if ($date != NULL) {
-      $logsFolder = $this->root_folder_no_date . $date . "_$iteration/";
-    }
-
 
     if (!file_exists($logsFolder) && $createFolder == TRUE) {
       mkdir($logsFolder, 0770, true);
@@ -73,6 +78,9 @@ class AcsfLogs extends AcsfToolsUtils {
       $fileManager = new AcsfFileManager();
       $fileManager->createFile($logsFolder . '/' . $this::START_LOG_MARKER, date("c", time()));
     }
+    elseif (!file_exists($logsFolder)) {
+      $logsFolder = '';
+    }
     elseif (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
       // FINISH_LOG_MARKER indicate that a previous deployment has finished.
       // If so, then increase iteration variable $iteration.
@@ -80,14 +88,46 @@ class AcsfLogs extends AcsfToolsUtils {
 
       // TODO: Send files zipped in the logs folder.
     }
-    elseif (!file_exists($logsFolder)) {
-      $logsFolder = '';
-    }
 
     return $logsFolder;
   }
 
   /**
+   * Return last date or specify a given date.
+   *
+   * @param null $date
+   * @param null $iteration
+   * @param bool $searchRecursively
+   *
+   * @return string
+   */
+  public function getLastLogsFolderRecursive($date = NULL, $iteration = NULL, $searchRecursively = TRUE) {
+    if ($iteration == NULL) {
+      $iteration = 0;
+    }
+
+    if ($date == NULL) {
+      $date = date("Ymd", time());
+    }
+    $logsFolder = $this->root_folder_no_date . $date . "_$iteration/";
+
+    if ($searchRecursively == TRUE) {
+      if (!file_exists($logsFolder) && $iteration == 0) {
+        $logsFolder = '';
+      }
+      elseif (!file_exists($logsFolder) && $iteration > 0) {
+        $iteration--;
+        $logsFolder = $this->root_folder_no_date . $date . "_$iteration/";
+      }
+      elseif (file_exists($logsFolder)){
+        $logsFolder = $this->getLastLogsFolderRecursive($date, $iteration + 1);
+      }
+    }
+
+    return $logsFolder;
+  }
+
+    /**
    * Get folder where last logs are stored.
    *
    * @param $site_group
