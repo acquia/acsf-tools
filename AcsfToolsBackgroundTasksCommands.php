@@ -56,6 +56,8 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
     if ($this->getSiteID()) {
       $fileManager->createFile($AcsfFlags->getFlagfileName($this->getSiteID()), $options['retry-count']);
+      $AcsfLogs = new AcsfLogs();
+      $AcsfLogs->getLastLogsFolder();
     }
   }
 
