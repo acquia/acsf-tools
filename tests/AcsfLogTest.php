@@ -68,13 +68,34 @@ final class AcsfLogTest extends TestCase
    * @return array
    */
   public function DoGetFoldersRecursive() {
+    $date = '20200624';
     return array(
       // First iteration, we expect to return an empty folder.
       array(
         NULL,
         NULL,
         '',
+        // Create folder?
         TRUE,
+        // Iterate?
+        TRUE,
+      ),
+      array(
+        NULL,
+        NULL,
+        $this::LOGS_FOLDER_TEST_ROOT . '/recursive_logs/large_scale_cron_' . date("Ymd", time()) .'_0/',
+        // Create folder?
+        TRUE,
+        // Iterate?
+        TRUE,
+      ),
+      array(
+        $date,
+        NULL,
+        $this::LOGS_FOLDER_TEST_ROOT . '/recursive_logs/large_scale_cron_20200624_0/',
+        // Create folder?
+        TRUE,
+        // Iterate?
         TRUE,
       ),
       array(
@@ -148,9 +169,17 @@ final class AcsfLogTest extends TestCase
       ),
       // Specify which folder to return.
       array(
+        '20200624',
+        1,
+        $this::LOGS_FOLDER_TEST_ROOT . '/recursive_logs/large_scale_cron_20200624_1/',
+        FALSE,
+        FALSE,
+      ),
+      // Specify which folder to return.
+      array(
         NULL,
         2,
-        $this::LOGS_FOLDER_TEST_ROOT . '/recursive_logs/large_scale_cron_20200624_2/',
+        $this::LOGS_FOLDER_TEST_ROOT . '/recursive_logs/large_scale_cron_' . date("Ymd", time()) . '_2/',
         FALSE,
         FALSE,
       ),
