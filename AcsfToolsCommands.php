@@ -202,19 +202,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
               ->writeln("\n=> The command failed to execute for the site $domain.");
             continue;
           }
-
-          $self = $this->siteAliasManager()->getSelf();
-          $command_args = [];
-          // Remove empty values from array.
-          $options = array_filter($options);
-          $process = Drush::drush($self, $cmd, $command_args, $options);
-          $exit_code = $process->run();
-
-          if ($exit_code !== 0) {
-            $this->output()
-              ->writeln("\n=> The command failed to execute for the site $domain.");
-            continue;
-          }
           // Delay in running the command for next site.
           if ($delay > 0 && $i < (count($sites) - 1)) {
             $this->output()
@@ -259,6 +246,15 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     // Identify target folder.
     $result_folder = $options['result-folder'];
+    $current_date = date("Ymd");
+    // Folder based on current date.
+    $backup_result_folder = $result_folder . '/' . $current_date;
+    // If dump directory does not exist.
+    // Create dump directory.
+    if (!mkdir($backup_result_folder, 0755, TRUE)) {
+      $this->io()->error(sprintf('Unable to create dump directory "%s"', $backup_result_folder));
+      return;
+    }
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
@@ -282,12 +278,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         unset($options['php-options']);
         unset($options['result-folder']);
 
-        $current_date = date("Ymd");
-        // Folder based on current date.
-        $backup_result_folder = $result_folder . '/' . $current_date;
-        if (!is_dir($backup_result_folder)) {
-            mkdir($backup_result_folder, 0755, true);
-        }
         $options['result-file'] = $backup_result_folder . '/' . $prefix . '.sql';
         $options['uri'] = $domain;
 
