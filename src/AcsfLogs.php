@@ -4,8 +4,8 @@ namespace Drush\Commands\acsf_tools;
 
 class AcsfLogs extends AcsfToolsUtils {
 
-  const START_LOG_MARKER = "post_deployment_tasks.start.log";
-  const FINISH_LOG_MARKER = "post_deployment_tasks.finish.log";
+  const START_LOG_MARKER = "background_tasks.start.log";
+  const FINISH_LOG_MARKER = "background_tasks.finish.log";
 
   private $root_logs_folder = NULL;
   private $site_env;
@@ -72,7 +72,7 @@ class AcsfLogs extends AcsfToolsUtils {
     if (!file_exists($logsFolder) && $createFolder == TRUE) {
       mkdir($logsFolder, 0770, true);
 
-      // Write the start log marker, so we know deployment has started.
+      // Write the start log marker, so we know background tasks activity have started.
       $this->yell("Creating start marker:: " . $logsFolder . $this::START_LOG_MARKER);
 
       $fileManager = new AcsfFileManager();
@@ -82,7 +82,7 @@ class AcsfLogs extends AcsfToolsUtils {
       $logsFolder = '';
     }
     elseif (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
-      // FINISH_LOG_MARKER indicate that a previous deployment has finished.
+      // FINISH_LOG_MARKER indicate that a previous background tasks activity has finished.
       // If so, then increase iteration variable $iteration.
       $logsFolder = $this->getLogsFolder($iteration + 1, $createFolder);
 
@@ -173,7 +173,7 @@ class AcsfLogs extends AcsfToolsUtils {
   }
 
   /**
-   * Finish gracefully the deployment.
+   * Finish gracefully the background task.
    *
    * @throws \Exception
    */
@@ -237,7 +237,7 @@ class AcsfLogs extends AcsfToolsUtils {
       $email_list = $config->email_logs;
     }
 
-    $headers = "From: no-reply-acsf-deployment-logs@example.com" . "\r\n" .
+    $headers = "From: no-reply-acsf-backgroundtasks-logs@example.com" . "\r\n" .
       "CC: ";
     mail($email_list, $subject, $message, $headers);
   }

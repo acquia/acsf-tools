@@ -3,11 +3,11 @@
 use Drush\Commands\acsf_tools\AcsfFileManager;
 use PHPUnit\Framework\TestCase;
 
-final class AcsfCustomPostDeploymentCommandsTest extends TestCase
+final class AcsfToolsBackgroundTasksTest extends TestCase
 {
 
   /** @var \Drush\Commands\acsf_tools\AcsfToolsBackgroundTasksCommands */
-  protected $postDeployment;
+  protected $backgroundTasks;
 
   protected function setUp(): void
   {
@@ -18,7 +18,7 @@ final class AcsfCustomPostDeploymentCommandsTest extends TestCase
     $_ENV['AH_SITE_ENVIRONMENT'] = 'siteenvironment';
     $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
 
-    $this->postDeployment = new \Drush\Commands\acsf_tools\AcsfToolsBackgroundTasksCommands();
+    $this->backgroundTasks = new \Drush\Commands\acsf_tools\AcsfToolsBackgroundTasksCommands();
   }
 
   /**

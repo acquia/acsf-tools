@@ -7,11 +7,15 @@
 namespace Drush\Commands\acsf_tools;
 
 use Drush\Drush;
+use Consolidation\SiteAlias\SiteAliasManagerAwareInterface;
+use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
 
 /**
  * A Drush commandfile.
  */
-class AcsfToolsCommands extends AcsfToolsUtils {
+class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareInterface {
+
+  use SiteAliasManagerAwareTrait;
 
   /**
    * List the sites of the factory.
@@ -146,40 +150,6 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
-
-    // drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
-    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
-    $command_args = preg_split("/'\s'/", $command_args);
-
-    // Trim off "'" that will stay back after preg split with 1st & the last arg.
-    $command_args[0] = ltrim($command_args[0], "'");
-    $command_args[count($command_args) -1] = rtrim($command_args[count($command_args) -1], "'");
-
-    // drush 9 has strict validation around keys via which option values can be
-    // passed to the command. Its expected to throw exception if an option name
-    // not declared by the commands definition is passed to it. Dynamically
-    // passing options to all commands will not be directly possible with drush9
-    // (as it was the case with drush8). We try to receive all command specific
-    // options as an argument & parse it before invoking the sub-command.
-
-    //  Parse list of options to be passed ot the drush sub-command being
-    // invoked.
-    $command_options = preg_split("/'\s'/", $command_options);
-    $command_options[0] = ltrim($command_options[0], "'");
-    $command_options[count($command_options) -1] = rtrim($command_options[count($command_options) -1], "'");
-    $drush_command_options = [];
-
-    foreach ($command_options as $option_value) {
-      list($key, $value) = explode('=', $option_value);
-      $drush_command_options[$key] = $value;
-    }
-
-    // Command always passes the default option as `yes` irrespective if `--no`
-    // option used. Pass confirmation as `no` if use that.
-    if ($options['no']) {
-      $drush_command_options['no'] = TRUE;
-    }
-
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
       if (!empty($options['profiles'])) {
@@ -199,9 +169,11 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           // by the drush command, it can have an impact on the drupal process.
           $domain = $details['domains'][1] ?? $details['domains'][0];
 
-          if ($options['use-https']) {
-            // Use secure urls in URI to ensure base_url in Drupal uses https.
-            $domain = 'https://' . $domain;
+          if (array_key_exists('use-https', $options)) {
+            if ($options['use-https']) {
+              // Use secure urls in URI to ensure base_url in Drupal uses https.
+              $domain = 'https://' . $domain;
+            }
           }
 
           $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
@@ -215,10 +187,21 @@ class AcsfToolsCommands extends AcsfToolsUtils {
             }
           }
 
-          $drush_command_options['uri'] = $domain;
-
+          $options['uri'] = $domain;
           $this->output()->writeln("\n=> Running command on $domain");
-          drush_invoke_process('@self', $cmd, $command_args, $drush_command_options);
+
+          $self = $this->siteAliasManager()->getSelf();
+          $command_args = [];
+          // Remove empty values from array.
+          $options = array_filter($options);
+          $process = Drush::drush($self, $cmd, $command_args, $options);
+          $exit_code = $process->run();
+
+          if ($exit_code !== 0) {
+            $this->output()
+              ->writeln("\n=> The command failed to execute for the site $domain.");
+            continue;
+          }
 
           // Delay in running the command for next site.
           if ($delay > 0 && $i < (count($sites) - 1)) {
@@ -226,6 +209,9 @@ class AcsfToolsCommands extends AcsfToolsUtils {
               ->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
             sleep($delay);
           }
+
+          // Print the output.
+          $this->output()->writeln($process->getOutput());
         }
       } while ($total_time_limit && time() < $end && !empty($sites));
     }
@@ -264,10 +250,10 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
-      $arguments = drush_get_arguments();
+      $arguments = [];
       $command = 'sql-dump';
 
-      $options = drush_get_context('cli');
+      $options = Drush::input()->getOptions();
       unset($options['php']);
       unset($options['php-options']);
 
@@ -284,7 +270,18 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         $options['uri'] = $domain;
 
         $this->logger()->info("\n=> Running command on $domain");
-        drush_invoke_process('@self', $command, $arguments, $options);
+        $self = $this->siteAliasManager()->getSelf();
+        // Remove empty values from array.
+        $options = array_filter($options);
+        $process = Drush::drush($self, $command, $arguments, $options);
+        $exit_code = $process->run();
+
+        if ($exit_code !== 0) {
+          // Throw an exception with details about the failed process.
+          $this->output()
+            ->writeln("\n=> The command failed to execute for the site $domain.");
+          continue;
+        }
       }
     }
   }
@@ -331,9 +328,9 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
-      $arguments = drush_get_arguments();
+      $arguments = [];
 
-      $options = drush_get_context('cli');
+      $options = Drush::input()->getOptions();
       unset($options['php']);
       unset($options['php-options']);
       unset($options['source-folder']);
@@ -356,7 +353,16 @@ class AcsfToolsCommands extends AcsfToolsUtils {
 
         // Temporary decompress the dump to be used with drush sql-cli.
         if ($gzip) {
-          drush_shell_exec('gunzip -k ' . $source_file);
+          $shell_execution = Drush::shell('gunzip -k ' . $source_file);
+          $exit_code = $shell_execution->run();
+
+          if ($exit_code !== 0) {
+            // Throw an exception with details about the failed process.
+            $this->output()
+              ->writeln("\n=> The command failed to execute for the site $domain.");
+            continue;
+          }
+
           $source_file = substr($source_file, 0, -3);
         }
 
@@ -366,15 +372,52 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         $options['uri'] = $domain;
 
         $this->logger()->info("\n=> Dropping and restoring database on $domain");
-        $result = drush_invoke_process('@self', 'sql-connect', $arguments, $options, ['output' => FALSE]);
+        $self = $this->siteAliasManager()->getSelf();
+        // Remove empty values from array.
+        $options = array_filter($options);
+        $result = Drush::drush($self, 'sql-connect', $arguments, $options, ['output' => FALSE]);
+        $exit_code = $result->run();
+
+        if ($exit_code !== 0) {
+          // Throw an exception with details about the failed process.
+          $this->output()
+            ->writeln("\n=> The command failed to execute for the site $domain.");
+          continue;
+        }
+
         if (!empty($result['object'])) {
-          drush_invoke_process('@self', 'sql-drop', $arguments, $options);
-          drush_shell_exec($result['object'] . ' < ' . $source_file);
+          $result = Drush::drush($self, 'sql-drop', $arguments, $options);
+          $exit_code = $result->run();
+
+          if ($exit_code !== 0) {
+            // Throw an exception with details about the failed process.
+            $this->output()
+              ->writeln("\n=> The command failed to execute for the site $domain.");
+            continue;
+          }
+
+          $shell_execution = Drush::shell($result['object'] . ' < ' . $source_file);
+          $exit_code = $shell_execution->run();
+
+          if ($exit_code !== 0) {
+            // Throw an exception with details about the failed process.
+            $this->output()
+              ->writeln("\n=> The command failed to execute for the site $domain.");
+            continue;
+          }
         }
 
         // Remove the temporary decompressed dump
         if ($gzip) {
-          drush_shell_exec('rm ' . $source_file);
+          $shell_execution = Drush::shell('rm ' . $source_file);
+          $exit_code = $shell_execution->run();
+
+          if ($exit_code !== 0) {
+            // Throw an exception with details about the failed process.
+            $this->output()
+              ->writeln("\n=> The command failed to execute for the site $domain.");
+            continue;
+          }
         }
       }
     }

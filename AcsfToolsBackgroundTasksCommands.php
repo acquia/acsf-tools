@@ -33,12 +33,12 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   }
 
   /**
-   * Mark a site with post deployment tasks pending.
+   * Mark a site with post background tasks pending.
    *
    * @command acsf-tools:set-background-tasks-pending
    *
    * @option retry-count
-   *   How many times to retry if post deployment tasks exit with an error.
+   *   How many times to retry if post background tasks exit with an error.
    *
    * @bootstrap configuration
    * @throws \Exception
@@ -57,12 +57,13 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     if ($this->getSiteID()) {
       $fileManager->createFile($AcsfFlags->getFlagfileName($this->getSiteID()), $options['retry-count']);
       $AcsfLogs = new AcsfLogs();
-      $AcsfLogs->getLastLogsFolder();
+      // Force the creation of the logs folder during the first iteration.
+      $AcsfLogs->getLogsFolder();
     }
   }
 
   /**
-   * Runs post deployment tasks.
+   * Runs background tasks.
    *
    * @command acsf-tools:run-background-tasks
    *
@@ -85,24 +86,22 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env, '/mnt/gfs/');
     $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
 
-    // TODO: DEPLOYMENT PENDING && NO SITES WITH ERRORS
-    // todo: if queue X, then check errored sites, if not just the normal check.
     // Check the flag file exists / Value is 0<X<3
     // Check lock file DOES NOT exist
     if ($options['queue'] == 'default') {
-      $process = $this->checkDeploymentPending();
+      $process = $this->checkBackgroundTasksPending();
     }
     else {
-      $process = $this->checkDeploymentPendingAfterError($AcsfLock->doesLockExist($this->getSiteID()));
+      $process = $this->checkBackgroundTasksPendingAfterError($AcsfLock->doesLockExist($this->getSiteID()));
     }
 
     if ($process != TRUE) {
-      $this->say('No post deployment tasks pending.');
+      $this->say('No background tasks pending.');
     } else {
       $AcsfLogs = new AcsfLogs();
       // Bootstrap Drupal.
       try {
-        $this->say("\n" . $this->getCurrentTime() . " - Starting post deployment task for " . 'no_id');
+        $this->say("\n" . $this->getCurrentTime() . " - Starting background task for " . 'no_id');
         if (!Drush::bootstrapManager()
           ->doBootstrap(DRUSH_BOOTSTRAP_DRUPAL_FULL)) {
           $this->say("Unable to bootstrap Drupal.");
@@ -115,14 +114,14 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         // TODO: which site is failing here, any id possible would be good.
         $AcsfLogs->writeLog($message, 'no_id', 'error');
 
-        // If Drupal can not be boostrapped, stop trying to run post deployment tasks.
+        // If Drupal can not be boostrapped, stop trying to run background tasks.
         $AcsfLock->releaseLock($this->getSiteID());
         $AcsfFlags->removeFlagFile($this->getSiteID());
         throw $exception;
       }
 
       $lock = \Drupal::lock();
-      if ($lock->acquire('post_deployment_tasks', $lockTimeout)) {
+      if ($lock->acquire('background_tasks', $lockTimeout)) {
         // Get some configs from the bootstrapped Drupal.
         $self = $this->siteAliasManager()->getSelf();
         $selfConfig = $self->exportConfig()->export();
@@ -142,7 +141,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $AcsfFlags->decreaseFlagCounter($this->getSiteID());
         $counter = $AcsfFlags->getFlagCounter($this->getSiteID());
 
-        $this->say($this->getCurrentTime() . ' - Starting post deployment tasks.');
+        $this->say($this->getCurrentTime() . ' - Starting background tasks.');
         $this->say('Retries left (excluding this run): ' . $counter);
 
         try {
@@ -169,7 +168,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
             $errorOutput = $process->getErrorOutput();
 
             // @TODO move logging of $process output to a separate method.
-            $AcsfLogs->writeLog("Post deployment script finished successfully:\n"
+            $AcsfLogs->writeLog("Background tasks script finished successfully:\n"
               . "Exit code: " . $exitCode
               . "Script output: " . $data
               . "Script error output:\n$errorOutput", $db_name, 'success');
@@ -196,12 +195,12 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         }
 
         $this->say($this->getCurrentTime() . " - Releasing lock for " . $db_name);
-        $lock->release('post_deployment_tasks');
+        $lock->release('background_tasks');
         $AcsfLock->releaseLock($db_name);
         // Remove lock file here.
       } else {
-        $this->say($this->getCurrentTime() . ' - Deployment tasks pending, but this process could not
-        acquire a lock. Another process is already running post deployment commands.');
+        $this->say($this->getCurrentTime() . ' - Background tasks pending, but this process could not
+        acquire a lock. Another process is already running background commands.');
       }
     }
   }
@@ -223,6 +222,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @filter-default-field name
    * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
    *
+   * @bootstrap full
    * @throws \Exception
    */
   public function fetchBackgroundTasksStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
@@ -249,7 +249,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       $f = $acsfLogs::START_LOG_MARKER;
       $v = $this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", "");
       $results[] = [
-        'name' => 'Deployment started',
+        'name' => 'Background task started',
         'value' => trim($v),
         'description' => '',
       ];
@@ -328,7 +328,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       $f = $acsfLogs::FINISH_LOG_MARKER;
       $v = trim($this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", ""));
       $results[] = [
-        'name' => 'Deployment finished',
+        'name' => 'Background task finished',
         'value' => empty($v) ? 'Not finished yet' : $v,
         'description' => '',
       ];
@@ -370,6 +370,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @filter-default-field name
    * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
    *
+   * @bootstrap full
    * @throws \Exception
    */
   public function fetchBackgroundTasksSitesStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
@@ -433,7 +434,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @return bool
    * @throws \Exception
    */
-  public function checkDeploymentPending()
+  public function checkBackgroundTasksPending()
   {
     $pending = false;
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
@@ -455,7 +456,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @return bool
    * @throws \Exception
    */
-  public function checkDeploymentPendingAfterError($existsLock) {
+  public function checkBackgroundTasksPendingAfterError($existsLock) {
     $pending = FALSE;
 
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
@@ -491,150 +492,150 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     if ($logsFolder === NULL) {
       $this->say('Logs folder not found.');
     }
-    else {
-      $acsfUtils = new AcsfToolsUtils();
-      $acsfSites = $acsfUtils->getSites();
 
-      $sites = array();
+    $acsfUtils = new AcsfToolsUtils();
+    $acsfSites = $acsfUtils->getSites();
 
-      foreach ($acsfSites as $db => $conf) {
-        if (isset($conf['flags']['preferred_domain']) && $conf['flags']['preferred_domain'] === TRUE) {
-          $sites[$db] = array(
+    $sites = array();
+
+    foreach ($acsfSites as $db => $conf) {
+      if (isset($conf['flags']['preferred_domain']) && $conf['flags']['preferred_domain'] === TRUE) {
+        $sites[$db] = array(
+          'success' => 0,
+          'error' => 0,
+          'domain' => reset($conf['domains']),
+        );
+
+        if (file_exists($gfsFlagsFolder . 'background_tasks_pending_' . $db)) {
+          $sites[$db]['flag'] = file_get_contents($gfsFlagsFolder . 'background_tasks_pending_' . $db);
+        }
+
+        if (file_exists($gfsFlagsFolder . $db . '.lock')) {
+          $sites[$db]['lock'] = 1;
+        }
+      }
+    }
+
+    $successLogSuffix = '.success.log';
+    $errorLogSuffix = '.error.log';
+
+    $logs = $logsFolder !== NULL ? scandir($logsFolder) : array();
+
+    foreach ($logs as $log) {
+      // Check if it is a success log.
+      if (substr_compare($log, $successLogSuffix, strlen($log)-strlen($successLogSuffix), strlen($successLogSuffix)) === 0) {
+        $type = 'success';
+      }
+      // Check if it's an error log.
+      elseif (substr_compare($log, $errorLogSuffix, strlen($log)-strlen($errorLogSuffix), strlen($errorLogSuffix)) === 0) {
+        $type = 'error';
+      }
+      else {
+        $type = 'other';
+      }
+
+      if ($type == 'success' || $type == 'error') {
+        $split = explode('-', $log);
+        $siteDb = $split[0];
+
+        // We can have old log files for sites which are not on ACSF anymore.
+        if (!isset($sites[$siteDb])) {
+          $sites[$siteDb] = array(
             'success' => 0,
             'error' => 0,
-            'domain' => reset($conf['domains']),
           );
-
-          if (file_exists($gfsFlagsFolder . $db)) {
-            $sites[$db]['flag'] = file_get_contents($gfsFlagsFolder . $db);
-          }
-
-          if (file_exists($gfsFlagsFolder . $db . '.lock')) {
-            $sites[$db]['lock'] = 1;
-          }
         }
+
+        if ($type == 'success') {
+          $sites[$siteDb]['success'] += 1;
+        }
+        elseif ($type == 'error') {
+          $sites[$siteDb]['error'] += 1;
+        }
+
       }
-
-      $successLogSuffix = '.success.log';
-      $errorLogSuffix = '.error.log';
-      $logs = scandir($logsFolder);
-
-      foreach ($logs as $log) {
-        // Check if it is a success log.
-        if (substr_compare($log, $successLogSuffix, strlen($log)-strlen($successLogSuffix), strlen($successLogSuffix)) === 0) {
-          $type = 'success';
-        }
-        // Check if it's an error log.
-        elseif (substr_compare($log, $errorLogSuffix, strlen($log)-strlen($errorLogSuffix), strlen($errorLogSuffix)) === 0) {
-          $type = 'error';
-        }
-        else {
-          $type = 'other';
-        }
-
-        if ($type == 'success' || $type == 'error') {
-          $split = explode('-', $log);
-          $siteDb = $split[0];
-
-          // We can have old log files for sites which are not on ACSF anymore.
-          if (!isset($sites[$siteDb])) {
-            $sites[$siteDb] = array(
-              'success' => 0,
-              'error' => 0,
-            );
-          }
-
-          if ($type == 'success') {
-            $sites[$siteDb]['success'] += 1;
-          }
-          elseif ($type == 'error') {
-            $sites[$siteDb]['error'] += 1;
-          }
-
-        }
-      }
-
-      $totals = array(
-        'success' => 0,
-        'error' => 0,
-        'success_error' => 0,
-        'flag' => 0,
-        'lock' => 0,
-        'error_1_pending' => 0,
-        'error_2_pending' => 0,
-        'error_3' => 0,
-        'error_1_processing' => 0,
-        'error_2_processing' => 0,
-        'pending' => 0,
-      );
-
-      foreach ($sites as $site => $v) {
-
-        if (file_exists($gfsFlagsFolder . $site)) {
-          $v['flag'] = file_get_contents($gfsFlagsFolder . $site);
-        }
-
-        if (file_exists($gfsFlagsFolder . $site . '.lock')) {
-          $v['lock'] = 1;
-        }
-
-        $results['sites'][] = [
-          'name' => $site,
-          'domain' => $v['domain'],
-          'success' => $v['success'],
-          'error' => $v['error'],
-          'flag' => $v['flag'],
-          'lock' => $v['lock'],
-        ];
-
-        if ($v['lock'] == 0 && $v['flag'] == '3') {
-          $totals['pending']++;
-        }
-
-        if ($v['lock'] == 0 && $v['flag'] == '2') {
-          $totals['error_1_pending']++;
-        }
-
-        if ($v['lock'] == 0 && $v['flag'] == '1') {
-          $totals['error_2_pending']++;
-        }
-
-        if ($v['lock'] == 1 && $v['flag'] == '2') {
-          $totals['error_1_processing']++;
-        }
-
-        if ($v['lock'] == 1 && $v['flag'] == '1') {
-          $totals['error_2_processing']++;
-        }
-
-        if ($v['error'] == 3) {
-          $totals['error_3']++;
-        }
-
-        if ($v['success'] > 0 && $v['error'] == 0) {
-          $totals['success']++;
-        }
-
-        if ($v['error'] > 0 && $v['success'] == 0) {
-          $totals['error']++;
-        }
-
-        if ($v['error'] > 0 && $v['success'] > 0) {
-          $totals['success_error']++;
-        }
-
-        if ($v['flag'] > 0) {
-          $totals['flag']++;
-        }
-
-        if ($v['lock'] > 0) {
-          $totals['lock']++;
-        }
-      }
-
-      $results['totals'] = $totals;
-      $results['totals']['sites'] = count($sites);
     }
+
+    $totals = array(
+      'success' => 0,
+      'error' => 0,
+      'success_error' => 0,
+      'flag' => 0,
+      'lock' => 0,
+      'error_1_pending' => 0,
+      'error_2_pending' => 0,
+      'error_3' => 0,
+      'error_1_processing' => 0,
+      'error_2_processing' => 0,
+      'pending' => 0,
+    );
+
+    foreach ($sites as $site => $v) {
+
+      if (file_exists($gfsFlagsFolder . 'background_tasks_pending_' . $site)) {
+        $v['flag'] = file_get_contents($gfsFlagsFolder . 'background_tasks_pending_' . $site);
+      }
+
+      if (file_exists($gfsFlagsFolder . $site . '.lock')) {
+        $v['lock'] = 1;
+      }
+
+      $results['sites'][] = [
+        'name' => $site,
+        'domain' => $v['domain'],
+        'success' => $v['success'],
+        'error' => $v['error'],
+        'flag' => $v['flag'],
+        'lock' => $v['lock'],
+      ];
+
+      if ($v['lock'] == 0 && $v['flag'] == '3') {
+        $totals['pending']++;
+      }
+
+      if ($v['lock'] == 0 && $v['flag'] == '2') {
+        $totals['error_1_pending']++;
+      }
+
+      if ($v['lock'] == 0 && $v['flag'] == '1') {
+        $totals['error_2_pending']++;
+      }
+
+      if ($v['lock'] == 1 && $v['flag'] == '2') {
+        $totals['error_1_processing']++;
+      }
+
+      if ($v['lock'] == 1 && $v['flag'] == '1') {
+        $totals['error_2_processing']++;
+      }
+
+      if ($v['error'] == 3) {
+        $totals['error_3']++;
+      }
+
+      if ($v['success'] > 0 && $v['error'] == 0) {
+        $totals['success']++;
+      }
+
+      if ($v['error'] > 0 && $v['success'] == 0) {
+        $totals['error']++;
+      }
+
+      if ($v['error'] > 0 && $v['success'] > 0) {
+        $totals['success_error']++;
+      }
+
+      if ($v['flag'] > 0) {
+        $totals['flag']++;
+      }
+
+      if ($v['lock'] > 0) {
+        $totals['lock']++;
+      }
+    }
+
+    $results['totals'] = $totals;
+    $results['totals']['sites'] = count($sites);
 
     return $results;
   }

@@ -96,7 +96,7 @@ class AcsfFlags {
    */
   public function getFlagFileName($id)
   {
-    return $this->getFlagsFolder() . 'post_deployment_tasks_pending_' . $id;
+    return $this->getFlagsFolder() . 'background_tasks_pending_' . $id;
   }
 
   /**
