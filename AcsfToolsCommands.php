@@ -221,6 +221,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
               ->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
             sleep($delay);
           }
+
           // Print the output.
           $this->output()->writeln($process->getOutput());
         }
