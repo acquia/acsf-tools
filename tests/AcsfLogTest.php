@@ -2,6 +2,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use Drupal\acsf\AcsfLog;
 use PHPUnit\Framework\TestCase;
 
 
@@ -58,10 +59,6 @@ final class AcsfLogTest extends TestCase
 
     $folder = $this->AcsfLock->getLastLogsFolderRecursive($date, $iteration, $recursion);
     $this->assertEquals($expectedFolder, $folder);
-
-    echo PHP_EOL . 'logs folder:: ' . $folder . " | ";
-    echo PHP_EOL . " --------- " . PHP_EOL . PHP_EOL;
-
   }
 
   /**
@@ -319,6 +316,23 @@ final class AcsfLogTest extends TestCase
       }
       rmdir($dir);
     }
+  }
+
+
+  /**
+   * @throws \Exception
+   */
+  public function testEmailCompressedLogs() {
+    $folder = $this->AcsfLock->getLogsFolder();
+    echo "Folder: " . $folder;
+    touch($folder . '/test.log');
+    touch($folder . '/tests.log');
+    touch($folder . '/finish.log');
+    touch($folder . AcsfLogs::FINISH_LOG_MARKER);
+    touch($folder . AcsfLogs::START_LOG_MARKER);
+
+    $this->AcsfLock->emailCompressedLogs("Testing", "Sending zip file", "alejandro.moreno@acquia.com", $folder);
+
   }
 
 }

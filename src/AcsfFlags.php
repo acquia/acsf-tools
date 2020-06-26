@@ -81,6 +81,9 @@ class AcsfFlags {
 
       // 2. If so, write the FINISH marker in the logs folder.
       $AcsfLogs->createFinishMarker();
+
+      // 3. Compress and send the logs in $flagsFolder.
+      $AcsfLogs->emailCompressedLogs($flagsFolder);
     }
   }
 

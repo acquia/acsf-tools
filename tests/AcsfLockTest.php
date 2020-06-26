@@ -12,6 +12,19 @@ final class AcsfLockTest extends TestCase
 
   const TMP_FOLDER = "/tmp/locks/";
 
+  public function __construct(?string $name = NULL, array $data = [], $dataName = '') {
+    parent::__construct($name, $data, $dataName);
+
+    // Wipe out contents with previous tests
+    if (is_dir($this::TMP_FOLDER)) {
+      $this->rrmdir($this::TMP_FOLDER);
+    }
+    // And prepare a fresh new one for a new batch of tests.
+    mkdir($this::TMP_FOLDER, 0777, TRUE);
+
+  }
+
+
   protected function setUp(): void
   {
     $this->AcsfLock = new AcsfLock($this::TMP_FOLDER);
@@ -110,6 +123,26 @@ final class AcsfLockTest extends TestCase
         TRUE
       ),
     );
+  }
+
+
+  /**
+   * Prepare the folders for testing.
+   * @param $dir
+   */
+  private function rrmdir($dir) {
+    if (is_dir($dir)) {
+      $objects = scandir($dir);
+      foreach ($objects as $object) {
+        if ($object != "." && $object != "..") {
+          if (is_dir($dir. DIRECTORY_SEPARATOR .$object) && !is_link($dir."/".$object))
+            $this->rrmdir($dir. DIRECTORY_SEPARATOR .$object);
+          else
+            unlink($dir. DIRECTORY_SEPARATOR .$object);
+        }
+      }
+      rmdir($dir);
+    }
   }
 
 }
