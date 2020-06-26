@@ -250,10 +250,19 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     // Folder based on current date.
     $backup_result_folder = $result_folder . '/' . $current_date;
     // If dump directory does not exist.
-    // Create dump directory.
-    if (!mkdir($backup_result_folder, 0755, TRUE)) {
-      $this->io()->error(sprintf('Unable to create dump directory "%s"', $backup_result_folder));
-      return;
+    if(!file_exists($backup_result_folder)){
+      $directory_message = sprintf('Dump directory "%s" does not exist. Do you want to create this directory?', $backup_result_folder);
+      if (!$this->io()->confirm($directory_message)) {
+        throw new UserAbortException();
+      }
+      // Create dump directory.
+      if (!mkdir($backup_result_folder, 0755, TRUE)) {
+        $this->io()->error(sprintf('Unable to create dump directory "%s"', $backup_result_folder));
+        return;
+      }
+      else{
+        $this->output()->writeln("\n=> Folder created $backup_result_folder");
+      }
     }
 
     // Look for list of sites and loop over it.
