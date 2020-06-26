@@ -85,8 +85,6 @@ class AcsfLogs extends AcsfToolsUtils {
       // FINISH_LOG_MARKER indicate that a previous background tasks activity has finished.
       // If so, then increase iteration variable $iteration.
       $logsFolder = $this->getLogsFolder($iteration + 1, $createFolder);
-
-      // TODO: Send files zipped in the logs folder.
     }
 
     return $logsFolder;
@@ -219,7 +217,6 @@ class AcsfLogs extends AcsfToolsUtils {
     }
 
     if ($type == 'error' || $type == 'success') {
-      // TODO: On success, concatenate instead in a success-log and email later.
       $this->emailLogs($message, " ACSF build results: " . $type);
     }
   }

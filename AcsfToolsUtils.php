@@ -55,8 +55,6 @@ class AcsfToolsUtils extends DrushCommands {
    * @return array|bool
    */
   function getRemoteSites($config, $env = 'prod') {
-
-    // TODO: What happens when more than 100 sites? Implement paging.
     $sites_url = $this->getFactoryUrl($config, '/api/v1/sites?limit=100', $env);
     return $this->curlWrapper($config->username, $config->password, $sites_url)->sites;
   }

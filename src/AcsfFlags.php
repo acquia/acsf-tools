@@ -81,8 +81,6 @@ class AcsfFlags {
 
       // 2. If so, write the FINISH marker in the logs folder.
       $AcsfLogs->createFinishMarker();
-      // 3. TODO (MAYBE): cleanup method to find any lock files.
-      // 4. TODO (MAYBE): move locks to a safe place and log it.
     }
   }
 

@@ -107,11 +107,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
           $this->say("Unable to bootstrap Drupal.");
           throw new \Exception(dt($this->getCurrentTime() . ' - Unable to bootstrap Drupal.'));
         }
-        // POTENTIALLY TODO: code after this
       } catch (Exception $exception) {
         $this->say("Exception during Drupal bootstrap.");
         $message = $this->getCurrentTime() . " - Exception during Drupal bootstrap: " . $exception;
-        // TODO: which site is failing here, any id possible would be good.
         $AcsfLogs->writeLog($message, 'no_id', 'error');
 
         // If Drupal can not be boostrapped, stop trying to run background tasks.
@@ -133,7 +131,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         $site_env = $this->site_env;
         $db_name = $this->getSiteID();
 
-        // TODO: Add lock file here.
         $AcsfLock = new AcsfLock($AcsfFlags->getFlagsFolder());
         $AcsfLock->getLock($db_name);
 
@@ -167,7 +164,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
             // Capture error output. In case there were some warnings.
             $errorOutput = $process->getErrorOutput();
 
-            // @TODO move logging of $process output to a separate method.
             $AcsfLogs->writeLog("Background tasks script finished successfully:\n"
               . "Exit code: " . $exitCode
               . "Script output: " . $data
@@ -292,6 +288,12 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       'name' => 'Pending',
       'value' => $statuses['totals']['pending'],
       'description' => 'Sites with tasks pending and processing not started yet.',
+    ];
+
+    $results[] = [
+      'name' => 'Processing',
+      'value' => $statuses['totals']['processing'],
+      'description' => 'Sites with tasks processing first time.',
     ];
 
     $results[] = [
@@ -513,6 +515,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         if (file_exists($gfsFlagsFolder . $db . '.lock')) {
           $sites[$db]['lock'] = 1;
         }
+        else {
+          $sites[$db]['lock'] = 0;
+        }
       }
     }
 
@@ -579,6 +584,9 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       if (file_exists($gfsFlagsFolder . $site . '.lock')) {
         $v['lock'] = 1;
       }
+      else {
+        $v['lock'] = 0;
+      }
 
       $results['sites'][] = [
         'name' => $site,
@@ -602,10 +610,14 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       }
 
       if ($v['lock'] == 1 && $v['flag'] == '2') {
-        $totals['error_1_processing']++;
+        $totals['processing']++;
       }
 
       if ($v['lock'] == 1 && $v['flag'] == '1') {
+        $totals['error_1_processing']++;
+      }
+
+      if ($v['lock'] == 1 && $v['flag'] == '0') {
         $totals['error_2_processing']++;
       }
 
@@ -646,7 +658,6 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @return NULL|String
    * @throws \Exception
    */
-  // TODO: siteID can clash with ACSF
   public function getSiteID()
   {
     return $GLOBALS['gardens_site_settings']['conf']['acsf_db_name'];
