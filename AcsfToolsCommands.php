@@ -7,6 +7,7 @@
 namespace Drush\Commands\acsf_tools;
 
 use Drush\Drush;
+use Drush\Exceptions\UserAbortException;
 use Consolidation\SiteAlias\SiteAliasManagerAwareInterface;
 use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
 
