@@ -102,9 +102,12 @@ class AcsfToolsUtils extends DrushCommands {
    *
    * @return mixed
    */
-  public function getRestConfig() {
+  public function getRestConfig($path = NULL) {
 
-    $path = realpath(dirname(__FILE__));
+    if ($path == NULL) {
+      $path = realpath(dirname(__FILE__));
+    }
+
     $yaml = Yaml::parse(file_get_contents($path . '/acsf_tools_config.yml'));
     if ($yaml === FALSE) {
       $error  = 'acsf_tools_config.yml not found. Make sure to copy/rename ';

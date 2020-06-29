@@ -228,7 +228,9 @@ class AcsfLogs extends AcsfToolsUtils {
   public function emailLogs($message, $subject, array $emailList = null)
   {
     if ($emailList == null) {
-      $config = $this->getRestConfig();
+      $secretsFolder = '/mnt/files/' . $this->site_group . '.' . $this->site_env . '/';
+      $config = $this->getRestConfig($secretsFolder);
+
       $email_list = $config->email_logs_to;
     }
 
@@ -271,7 +273,8 @@ class AcsfLogs extends AcsfToolsUtils {
     }
 
     if ($emailList == NULL) {
-      $config = $this->getRestConfig();
+      $secretsFolder = '/mnt/files/' . $this->site_group . '.' . $this->site_env . '/';
+      $config = $this->getRestConfig($secretsFolder);
       $emailList = $config->email_logs_to;
       $from = $config->email_logs_from;
     }
