@@ -331,8 +331,9 @@ final class AcsfLogTest extends TestCase
     touch($folder . AcsfLogs::FINISH_LOG_MARKER);
     touch($folder . AcsfLogs::START_LOG_MARKER);
 
-    $this->AcsfLock->emailCompressedLogs("Testing", "Sending zip file", "alejandro.moreno@acquia.com", $folder);
+    $this->AcsfLock->emailCompressedLogs($folder);
 
+    $this->assertTrue(TRUE);
   }
 
 }

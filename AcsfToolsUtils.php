@@ -124,7 +124,8 @@ class AcsfToolsUtils extends DrushCommands {
     $config->subdomain_pattern = $yaml['subdomain_pattern'];
     $config->prod_web = $yaml['prod_web'];
     $config->dev_web = $yaml['dev_web'];
-    $config->email_logs = $yaml['email_logs'];
+    $config->email_logs_from = $yaml['email_logs_from'];
+    $config->email_logs_to = $yaml['email_logs_to'];
 
     return $config;
   }

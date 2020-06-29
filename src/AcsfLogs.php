@@ -2,6 +2,8 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use PHPMailer\PHPMailer\PHPMailer;
+
 class AcsfLogs extends AcsfToolsUtils {
 
   const START_LOG_MARKER = "background_tasks.start.log";
@@ -215,10 +217,6 @@ class AcsfLogs extends AcsfToolsUtils {
     if ($verbose) {
       $this->yell($message);
     }
-
-    if ($type == 'error' || $type == 'success') {
-      $this->emailLogs($message, " ACSF build results: " . $type);
-    }
   }
 
   /**
@@ -231,12 +229,77 @@ class AcsfLogs extends AcsfToolsUtils {
   {
     if ($emailList == null) {
       $config = $this->getRestConfig();
-      $email_list = $config->email_logs;
+      $email_list = $config->email_logs_to;
     }
 
     $headers = "From: no-reply-acsf-backgroundtasks-logs@example.com" . "\r\n" .
       "CC: ";
     mail($email_list, $subject, $message, $headers);
+  }
+
+  /**
+   * @param $folder
+   * @param $destination
+   *
+   * @throws \PHPMailer\PHPMailer\Exception
+   */
+  public function emailCompressedLogs($folder, $destination = NULL, $emailList = NULL, $smtp = FALSE) {
+    if ($destination == NULL) {
+      $destination = $folder;
+    }
+
+    $dirbase = dirname($destination);
+    $file = basename($destination);
+
+    $compressedFile = "$dirbase/$file.tar.gz";
+
+    exec("tar -cjf $compressedFile -C $destination .");
+
+    $mail = new PHPMailer();
+
+    if ($smtp) {
+          $mail->isSMTP();
+          $mail->Host = 'smtp.mailtrap.io';
+          $mail->SMTPAuth = true;
+          $mail->Username = '9a04b2aeb7b1dd';
+          $mail->Password = '06acfac4633980';
+          $mail->SMTPSecure = 'tls';
+          $mail->Port = 2525;
+    }
+    else {
+      $mail->isSendmail();
+    }
+
+    if ($emailList == NULL) {
+      $config = $this->getRestConfig();
+      $emailList = $config->email_logs_to;
+      $from = $config->email_logs_from;
+    }
+
+    $emailList = explode(',', $emailList);
+    echo PHP_EOL . 'email to:: ' . $to = array_shift($emailList);
+
+    $mail->addReplyTo($to);
+    $mail->addAddress($to);
+    $mail->setFrom($from);
+    foreach ($emailList as $emailcc) {
+      $mail->addAddress($emailcc);
+    }
+
+    $mail->isHTML(true);
+    $mail->Subject = "Your log is attached and/or ready for download";
+    $mail->Body = 'Your log is ready for download from:' . $compressedFile;
+    $mail->AltBody = 'Your log is ready for download';
+    $mail->AddAttachment( $compressedFile, $compressedFile, 'base64', 'application/octet-stream' );
+
+    if(!$mail->send()){
+      $this->yell( PHP_EOL . 'Message could not be sent. ' . ' ::::-> Mailer Error: ' . $mail->ErrorInfo);
+      echo PHP_EOL . 'Message could not be sent.';
+      echo'Mailer Error: ' . $mail->ErrorInfo;
+    }else {
+      $this->yell('Message has been sent');
+      echo  PHP_EOL . 'Message has been sent';
+    }
   }
 
 }
