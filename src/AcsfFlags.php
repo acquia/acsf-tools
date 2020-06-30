@@ -78,12 +78,13 @@ class AcsfFlags {
     // 1. Check if flags folder is empty.
     if ($fileManager->folderEmpty($flagsFolder)) {
       $AcsfLogs = new AcsfLogs();
+      $lastfolder = $AcsfLogs->getLogsFolder();
 
       // 2. If so, write the FINISH marker in the logs folder.
       $AcsfLogs->createFinishMarker();
 
       // 3. Compress and send the logs in $flagsFolder.
-      $AcsfLogs->emailCompressedLogs($AcsfLogs->getLogsFolder(0, FALSE));
+      $AcsfLogs->emailCompressedLogs($lastfolder);
     }
   }
 

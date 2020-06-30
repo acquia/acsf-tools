@@ -323,7 +323,7 @@ final class AcsfLogTest extends TestCase
    * @throws \Exception
    */
   public function testEmailCompressedLogs() {
-    $folder = $this->AcsfLock->getLogsFolder();
+    $folder = $this->AcsfLock->getLogsFolder(0, FALSE);
     echo "Folder: " . $folder;
     touch($folder . '/test.log');
     touch($folder . '/tests.log');

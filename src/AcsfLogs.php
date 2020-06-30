@@ -82,6 +82,7 @@ class AcsfLogs extends AcsfToolsUtils {
     }
     elseif (!file_exists($logsFolder)) {
       $logsFolder = '';
+      // Scenario where this fails:
     }
     elseif (file_exists($logsFolder . '/' . $this::FINISH_LOG_MARKER)) {
       // FINISH_LOG_MARKER indicate that a previous background tasks activity has finished.
@@ -282,8 +283,8 @@ class AcsfLogs extends AcsfToolsUtils {
 
     $mail->isHTML(true);
     $mail->Subject = "Your log is attached and/or ready for download";
-    $mail->Body = 'Your log is ready for download from:' . $compressedFile;
-    $mail->AltBody = 'Your log is ready for download';
+    $mail->Body = 'Your log is attached and/or ready for download from:' . $compressedFile;
+    $mail->AltBody = 'Your log is attached and/or ready for download';
     $mail->AddAttachment( $compressedFile, $compressedFile, 'base64', 'application/octet-stream' );
 
     if(!$mail->send()){
