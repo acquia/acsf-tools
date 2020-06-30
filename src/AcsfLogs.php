@@ -245,7 +245,7 @@ class AcsfLogs extends AcsfToolsUtils {
    *
    * @throws \PHPMailer\PHPMailer\Exception
    */
-  public function emailCompressedLogs($folder, $destination = NULL, $emailList = NULL, $smtp = FALSE) {
+  public function emailCompressedLogs($folder, $destination = NULL, $emailList = NULL, $smtp = NULL) {
     if ($destination == NULL) {
       $destination = $folder;
     }
@@ -259,16 +259,7 @@ class AcsfLogs extends AcsfToolsUtils {
 
     $mail = new PHPMailer();
 
-    if ($smtp) {
-          $mail->isSMTP();
-          $mail->Host = 'smtp.mailtrap.io';
-          $mail->SMTPAuth = true;
-          $mail->Username = '9a04b2aeb7b1dd';
-          $mail->Password = '06acfac4633980';
-          $mail->SMTPSecure = 'tls';
-          $mail->Port = 2525;
-    }
-    else {
+    if ($smtp == NULL) {
       $mail->isSendmail();
     }
 
