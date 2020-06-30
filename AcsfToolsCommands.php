@@ -151,6 +151,41 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
+    // Drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
+    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
+    $command_args = preg_split("/'\s'/", $command_args);
+
+    // Trim off "'" that will stay back after preg split with 1st & the last arg.
+    $command_args[0] = ltrim($command_args[0], "'");
+    $command_args[count($command_args) -1] = rtrim($command_args[count($command_args) -1], "'");
+
+    // Drush 9 has strict validation around keys via which option values can be
+    // passed to the command. Its expected to throw exception if an option name
+    // not declared by the commands definition is passed to it. Dynamically
+    // passing options to all commands will not be directly possible with drush9
+    // (as it was the case with drush8). We try to receive all command specific
+    // options as an argument & parse it before invoking the sub-command.
+
+    // Parse list of options to be passed ot the drush sub-command being
+    // invoked.
+    $drush_command_options = [];
+    if (!empty($command_options)) {
+      $command_options = preg_split("/'\s'/", $command_options);
+      $command_options[0] = ltrim($command_options[0], "'");
+      $command_options[count($command_options) -1] = rtrim($command_options[count($command_options) -1], "'");
+
+      foreach ($command_options as $option_value) {
+        list($key, $value) = explode('=', $option_value);
+        $drush_command_options[$key] = $value;
+      }
+    }
+
+    // Command always passes the default option as `yes` irrespective if `--no`
+    // option used. Pass confirmation as `no` if use that.
+    if ($options['no']) {
+      $drush_command_options['no'] = TRUE;
+    }
+
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
       if (!empty($options['profiles'])) {
@@ -188,21 +223,20 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
             }
           }
 
-          $options['uri'] = $domain;
+          $drush_command_options['uri'] = $domain;
           $this->output()->writeln("\n=> Running command on $domain");
 
           $self = $this->siteAliasManager()->getSelf();
-          $command_args = [];
-          // Remove empty values from array.
-          $options = array_filter($options);
-          $process = Drush::drush($self, $cmd, $command_args, $options);
+          $process = Drush::drush($self, $cmd, $command_args, $drush_command_options);
           $exit_code = $process->run();
 
           if ($exit_code !== 0) {
             $this->output()
               ->writeln("\n=> The command failed to execute for the site $domain.");
+            $this->output()->writeln($process->getErrorOutput());
             continue;
           }
+
           // Delay in running the command for next site.
           if ($delay > 0 && $i < (count($sites) - 1)) {
             $this->output()
