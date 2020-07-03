@@ -143,7 +143,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
         try {
           if ($options['script'] === null) {
-            $options['script'] = "$root/../scripts/post-deployment.sh";
+            $options['script'] = "$root/../scripts/background-tasks.sh";
           }
 
           // Prepare the command to be run.
