@@ -53,8 +53,6 @@ TODO: job tasks here
 
 Create jobs pointing to this script:
 
-TODO -> Alex: post-deployment-tasks-cron.sh -> background-tasks-cron.sh
-scripts/post-deployment.sh -> background-tasks.sh
 
 ```
 scripts/post-deployment-tasks-cron.sh
