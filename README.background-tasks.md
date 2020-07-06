@@ -42,7 +42,7 @@ DRUSH_PATHS_CACHE_DIRECTORY="$cache_dir" $DRUSH_CMD acsf-tools:set-background-ta
 
 # RUN THIS ON EVERYTHING BUT PROD AND ACQINT (as they are the only ones having cron server for now)
 if [ "$env" != "01live" ] && [ "$env" != "01acqint" ]; then
-  $docroot/../scripts/post-deployment.sh $sitegroup $env $db_role $uri
+  $docroot/../scripts/background-tasks.sh $sitegroup $env $db_role $uri
 fi
 # ############# END POST DEPLOYMENT TASKS RELATED #########################
 ```
