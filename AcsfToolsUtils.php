@@ -196,4 +196,71 @@ class AcsfToolsUtils extends DrushCommands {
     }
     return TRUE;
   }
+
+  /**
+   * Determines whether or not a site is available based on its flags array.
+   *
+   * Restricted sites usually mean that an installation or another process is
+   * working on the site, so need to skip those.
+   *
+   * @param array $data
+   *   The ACSF site data array.
+   *
+   * @return bool
+   *   True if site is available.
+   */
+  public function isSiteAvailable(array $data): bool {
+    // Initialize variables.
+    $flags = $data['flags'];
+    $site_available = FALSE;
+
+    // Return early if neither access_restricted nor operation flags are set.
+    if (!array_key_exists('access_restricted', $flags) && !array_key_exists('operation', $flags)) {
+      $site_available = TRUE;
+    }
+
+    // Only available if access is not restricted and operation not underway.
+    if (!$this->isAccessRestricted($data) && !$this->isOperationBlocked($data)) {
+      $site_available = TRUE;
+    }
+    return $site_available;
+  }
+
+  /**
+   * Determines whether or not a site is restricted.
+   *
+   * Restricted sites usually mean that an installation or another process is
+   * working on the site, so need to skip those.
+   *
+   * @param array $data
+   *   The ACSF site data array.
+   *
+   * @return bool
+   *   True if access restriction is enabled.
+   */
+  public function isAccessRestricted(array $data): bool {
+    if (isset($data['flags']['access_restricted']['enabled']) && $data['flags']['access_restricted']['enabled'] == 1) {
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Determines whether or not another process is using a site's data.
+   *
+   * The 'operation' key means that the site is in a usable state but a
+   * process is using the site's data.
+   *
+   * @param array $data
+   *   The ACSF site data array.
+   *
+   * @return bool
+   *   True if the site's data is being used by another process.
+   */
+  public function isOperationBlocked(array $data): bool {
+    if (isset($data['flags']['operation']) && $data['flags']['operation'] == 'move') {
+      return TRUE;
+    }
+    return FALSE;
+  }
 }

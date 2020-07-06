@@ -212,6 +212,11 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
             }
           }
 
+          if (!$this->isSiteAvailable($details)) {
+            $this->output()->writeln("\n=> Skipping command on $domain");
+            continue;
+          };
+          
           $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
           if (!empty($profiles) && file_exists($site_settings_filepath)) {
             $site_settings = @file_get_contents($site_settings_filepath);
