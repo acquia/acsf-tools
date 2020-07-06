@@ -27,7 +27,7 @@ or apply the patch
 https://github.com/acquia/acsf-tools/pull/83.patch
 ```
 
-Add following to db-update.sh:
+2. Add following to db-update.sh:
 
 ```
 # ############# POST DEPLOYMENT TASKS RELATED ############################
@@ -42,25 +42,46 @@ DRUSH_PATHS_CACHE_DIRECTORY="$cache_dir" $DRUSH_CMD acsf-tools:set-background-ta
 # ############# END POST DEPLOYMENT TASKS RELATED #########################
 ```
 
+3. Copy files:
 
-Copy files:
 ```
 scripts/acsf_large_scale_cron.rb
 scripts/post-deployment.sh
 ```
 
-TODO: job tasks here
+(As mentioned you'll need to get acsf_large_scale_cron.rb from your representative at Acquia).
 
-Create jobs pointing to this script:
-
+Create jobs pointing to the postdeployment script (post-deployment-tasks-cron.sh). For example, 6 jobs would look like this:
 
 ```
-scripts/post-deployment-tasks-cron.sh
+# Job 1
+flock -xn /tmp/bayerwsf_acqint_hsc_1.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 0 3"
+# Job 2
+flock -xn /tmp/bayerwsf_acqint_hsc_2.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 9 3"
+# Job 3
+flock -xn /tmp/bayerwsf_acqint_hsc_3.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 18 3"
+# Job 4
+flock -xn /tmp/bayerwsf_acqint_hsc_4.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 27 3"
+# Job 5
+flock -xn /tmp/bayerwsf_acqint_hsc_5.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 36 3"
+# Job 6
+flock -xn /tmp/bayerwsf_acqint_hsc_6.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 45 3"
+
 ```
 
-
-Add email:
+Optional. Add an error queue jobs:
+ 
+ ```
+flock -xn /tmp/bayerwsf_acqint_hsc_6.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 45 3 errors"
 ```
- email_logs_from and email_logs_to 
-``` 
- to this file acsf_tools_config.default.yml. And put it in the same folder as your secrets file.
+
+Add email to this file acsf_tools_config.default.yml. And put it in the same folder as your secrets file.
+
+``` email_logs_from  ``` 
+
+and
+
+ ```email_logs_to```
+ 
+ 
+
