@@ -56,6 +56,7 @@ fi
 ```
 scripts/acsf_large_scale_cron.rb
 scripts/background-tasks.sh
+scripts/post-deployment-tasks-cron.sh
 ```
 
 (As mentioned you'll need to get acsf_large_scale_cron.rb from your representative at Acquia).
