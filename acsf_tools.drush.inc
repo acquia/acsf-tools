@@ -185,6 +185,11 @@ function drush_acsf_tools_ml() {
       // by the drush command, it can have an impact on the drupal process.
       $domain = $details['domains'][1] ?? $details['domains'][0];
 
+      if (!_drush_acsf_tools_is_site_available($details)) {
+        drush_log("\n=> Skipping command on $domain as site is not ready yet", 'ok');
+        continue;
+      };
+
       // If specific profile is provided, we check if it is the site's profile.
       // We first try to get site's profile from the settings file. If we can't
       // find the settings file, we use drush core-status to get it.
@@ -211,7 +216,7 @@ function drush_acsf_tools_ml() {
         }
 
         if (!$proceed) {
-          drush_log("\n=> Skipping command on $domain", 'ok');
+          drush_log("\n=> Skipping command on $domain as installation profile does not match", 'ok');
           continue;
         }
       }
@@ -496,4 +501,67 @@ Do you confirm you want to do that? If yes, type \'ok\'')
   }
 
   return TRUE;
+}
+
+/**
+ * Determines whether or not a site is available based on its flags array.
+ *
+ * Restricted sites usually mean that an installation or another process is
+ * working on the site, so need to skip those.
+ *
+ * @param array $data
+ *   The ACSF site data array.
+ *
+ * @return bool
+ *   True if site is available.
+ */
+function _drush_acsf_tools_is_site_available(array $data): bool {
+  // Initialize variables.
+  $site_available = TRUE;
+
+  // Not available if access is restricted or site is under operation.
+  if (_drush_acsf_tools_is_access_restricted($data) || _drush_acsf_tools_is_operation_blocked($data)) {
+    $site_available = FALSE;
+  }
+  return $site_available;
+}
+
+/**
+ * Determines whether or not a site is restricted.
+ *
+ * Restricted sites usually mean that an installation or another process is
+ * working on the site, so need to skip those.
+ *
+ * @param array $data
+ *   The ACSF site data array.
+ *
+ * @return bool
+ *   True if access restriction is enabled.
+ */
+function _drush_acsf_tools_is_access_restricted(array $data): bool {
+  if (array_key_exists('access_restricted', $data['flags'])) {
+    if (isset($data['flags']['access_restricted']['enabled']) && $data['flags']['access_restricted']['enabled'] == 1) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Determines whether or not another process is using a site's data.
+ *
+ * The 'operation' key means that the site is in a usable state but a
+ * process is using the site's data.
+ *
+ * @param array $data
+ *   The ACSF site data array.
+ *
+ * @return bool
+ *   True if the site's data is being used by another process.
+ */
+function _drush_acsf_tools_is_operation_blocked(array $data): bool {
+  if (isset($data['flags']['operation']) && $data['flags']['operation'] == 'move') {
+    return TRUE;
+  }
+  return FALSE;
 }
