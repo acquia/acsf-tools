@@ -208,17 +208,11 @@ class AcsfToolsUtils extends DrushCommands {
    */
   public function isSiteAvailable(array $data): bool {
     // Initialize variables.
-    $flags = $data['flags'];
-    $site_available = FALSE;
+    $site_available = TRUE;
 
-    // Return early if neither access_restricted nor operation flags are set.
-    if (!array_key_exists('access_restricted', $flags) && !array_key_exists('operation', $flags)) {
-      $site_available = TRUE;
-    }
-
-    // Only available if access is not restricted and operation not underway.
-    if (!$this->isAccessRestricted($data) && !$this->isOperationBlocked($data)) {
-      $site_available = TRUE;
+    // Not available if access is restricted or site is under operation.
+    if ($this->isAccessRestricted($data) || $this->isOperationBlocked($data)) {
+      $site_available = FALSE;
     }
     return $site_available;
   }
@@ -236,8 +230,10 @@ class AcsfToolsUtils extends DrushCommands {
    *   True if access restriction is enabled.
    */
   public function isAccessRestricted(array $data): bool {
-    if (isset($data['flags']['access_restricted']['enabled']) && $data['flags']['access_restricted']['enabled'] == 1) {
-      return TRUE;
+    if (array_key_exists('access_restricted', $data['flags'])) {
+      if (isset($data['flags']['access_restricted']['enabled']) && $data['flags']['access_restricted']['enabled'] == 1) {
+        return TRUE;
+      }
     }
     return FALSE;
   }
