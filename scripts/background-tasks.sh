@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Acquia hosting site / environment names
 site="$1"
@@ -21,9 +21,27 @@ echo "Generated temporary drush cache directory: $cacheDir."
 DRUSH_CMD="drush9 --root=$docroot --uri=$uri"
 
 # TODO: REMOVE ONCE GOOD FOR PROD. SETTING VARIABLE SO WE ENSURE WE REBUILD.
-DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_rebuild_pending 1
-DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 1
+DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_rebuild_pending 1 -y
+DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 1 -y
 # TODO: REMOVE ONCE GOOD FOR PROD. SETTING VARIABLE.
+
+function set_maintenance_mode {
+  echo "Setting site maintenance_mode to $1."
+
+  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset system.maintenance_mode $1 -y
+  maintenance_mode="$(DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sget system.maintenance_mode)"
+  echo "Site maintenance mode: $maintenance_mode"
+}
+
+function set_site_owner_maintenance_mode {
+  echo "Setting site_owner_maintenance_mode to $1."
+
+  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD cset acsf.settings site_owner_maintenance_mode $1 -y
+  site_owner_maintenance_mode="$(DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD cget acsf.settings site_owner_maintenance_mode -y)"
+  echo "Site owner maintenance mode: $site_owner_maintenance_mode"
+}
+
+set_site_owner_maintenance_mode 0
 
 # Fetch if import is pending.
 CMD="$(DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sget cohesion_import_pending  --format=json | grep cohesion_import_pending | grep -o '.$')"
@@ -31,6 +49,18 @@ CMD="$(DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sget cohesion_import_pen
 # Ignore if it's not 1, ie when it's 0, empty or has any other value
 if [ "$CMD" = "1" ]; then
   DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD dx8:import
+fi
+
+exitcode=$?
+if [ $exitcode -ne 0 ]; then
+    echo "Cohesion import failed. Website will remain in maintenance mode."
+    # In certain scenarios ACSF can keep a site live even if db-update.sh results in an error.
+    set_maintenance_mode 1
+    set_site_owner_maintenance_mode 1
+
+    exit $exitcode
+else
+    DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 0 -y
 fi
 
 # Fetch if rebuild is pending.
@@ -41,13 +71,17 @@ if [ "$CMD" = "1" ]; then
   DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD dx8:rebuild --verbose
 fi
 
-# @TODO check if this is sufficient error checking 
-if [ $? -eq 0 ]; then
-  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD cset acsf.settings site_owner_maintenance_mode FALSE
-  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset system.maintenance_mode FALSE
-
-  echo "Execution of post deployment tasks successful. Disabling maintenance mode."
-else
+exitcode=$?
+if [ $exitcode -ne 0 ]; then
   echo "Execution of post deployment tasks failed. Website will remain in maintenance mode."
-  exit 1
+  # In certain scenarios ACSF can keep a site live even if db-update.sh results in an error.
+  set_maintenance_mode 1
+  set_site_owner_maintenance_mode 1
+
+  exit $exitcode
+else
+  echo "Execution of post deployment tasks successful."
+  set_maintenance_mode 0
+
+  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_rebuild_pending 0 -y
 fi

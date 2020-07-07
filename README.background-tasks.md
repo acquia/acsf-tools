@@ -36,10 +36,15 @@ docroot="/var/www/html/$sitegroup.$env/docroot"
 # RUN THIS ON EVERYTHING BUT PROD AND ACQINT (as they are the only ones having cron server for now)
 if [ "$env" != "01live" ] && [ "$env" != "01acqint" ]; then
   $docroot/../scripts/background-tasks.sh $sitegroup $env $db_role $uri
+
+  exitcode=$?
+  if [ $exitcode -ne 0 ]; then
+      exit $exitcode
+  fi
 else
   DRUSH_CMD="drush9 --root=$docroot --uri=https://$domain"
   # 1. Tell acsf to not remove maintenance mode
-  DRUSH_PATHS_CACHE_DIRECTORY="$cache_dir" $DRUSH_CMD cset acsf.settings site_owner_maintenance_mode TRUE
+  DRUSH_PATHS_CACHE_DIRECTORY="$cache_dir" $DRUSH_CMD cset acsf.settings site_owner_maintenance_mode TRUE -y
   # 2. Create flag file
   DRUSH_PATHS_CACHE_DIRECTORY="$cache_dir" $DRUSH_CMD acsf-tools:set-background-tasks-pending
 fi
