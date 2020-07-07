@@ -24,7 +24,7 @@ SITES_JSON="/var/www/site-php/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/multisite-
 SITE_COUNT=$(grep -oP 'acsf_site_id\":\d+' ${SITES_JSON} | grep -oP '\d+' | sort | uniq | wc -l)
 
 ALL_SITES_TTL=$((SITE_COUNT * SINGLE_SITE_TTL / CONCURRENCY))
-COMMAND="acsf-custom:run-post-deployment-tasks --timeout ${SINGLE_SITE_TTL}"
+COMMAND="acsf-tools:run-background-tasks --timeout ${SINGLE_SITE_TTL}"
 DRUSH_COMMAND="drush9"
 
 sleep $TIMEOUT
