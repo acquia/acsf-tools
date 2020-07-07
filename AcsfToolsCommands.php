@@ -206,16 +206,16 @@ class AcsfToolsCommands extends AcsfToolsUtils {
           }
 
           if (!$this->isSiteAvailable($details)) {
-            $this->output()->writeln("\n=> Skipping command on $domain");
+            $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
             continue;
           };
-          
+
           $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
           if (!empty($profiles) && file_exists($site_settings_filepath)) {
             $site_settings = @file_get_contents($site_settings_filepath);
             if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
               if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
-                $this->output()->writeln("\n=> Skipping command on $domain");
+                $this->output()->writeln("\n=> Skipping command on $domain as installation profile does not match");
                 continue;
               }
             }
