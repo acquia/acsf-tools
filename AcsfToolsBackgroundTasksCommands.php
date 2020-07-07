@@ -218,7 +218,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @filter-default-field name
    * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
    *
-   * @bootstrap full
+   * @bootstrap site
    * @throws \Exception
    */
   public function fetchBackgroundTasksStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
@@ -372,7 +372,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
    * @filter-default-field name
    * @return \Consolidation\OutputFormatters\StructuredData\RowsOfFields
    *
-   * @bootstrap full
+   * @bootstrap site
    * @throws \Exception
    */
   public function fetchBackgroundTasksSitesStatus($options = ['format' => 'table', 'date' => NULL, 'iteration' => NULL]) {
