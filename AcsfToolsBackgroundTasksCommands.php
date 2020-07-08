@@ -462,7 +462,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $pending = FALSE;
 
     $AcsfFlags = new AcsfFlags($this->site_group, $this->site_env,'/mnt/gfs/');
-    if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID())) && $existsLock) {
+    if (file_exists($AcsfFlags->getFlagfileName($this->getSiteID())) && !$existsLock) {
       $retries = intval(file_get_contents($AcsfFlags->getFlagfileName($this->getSiteID())));
 
       if (is_int($retries) && (0 < $retries && $retries < 3)) {
