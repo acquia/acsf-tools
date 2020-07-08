@@ -20,11 +20,6 @@ echo "Generated temporary drush cache directory: $cacheDir."
 
 DRUSH_CMD="drush9 --root=$docroot --uri=$uri"
 
-# TODO: REMOVE ONCE GOOD FOR PROD. SETTING VARIABLE SO WE ENSURE WE REBUILD.
-DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_rebuild_pending 1 -y
-DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 1 -y
-# TODO: REMOVE ONCE GOOD FOR PROD. SETTING VARIABLE.
-
 function set_maintenance_mode {
   echo "Setting site maintenance_mode to $1."
 
@@ -53,14 +48,15 @@ fi
 
 exitcode=$?
 if [ $exitcode -ne 0 ]; then
-    echo "Cohesion import failed. Website will remain in maintenance mode."
-    # In certain scenarios ACSF can keep a site live even if db-update.sh results in an error.
-    set_maintenance_mode 1
-    set_site_owner_maintenance_mode 1
+  echo "Cohesion import failed. Website will remain in maintenance mode."
+  # In certain scenarios ACSF can keep a site live even if db-update.sh results in an error.
+  set_maintenance_mode 1
+  set_site_owner_maintenance_mode 1
 
-    exit $exitcode
+  exit $exitcode
 else
-    DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 0 -y
+  echo "Disabling cohesion_import_pending setting."
+  DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_import_pending 0 -y
 fi
 
 # Fetch if rebuild is pending.
@@ -83,5 +79,6 @@ else
   echo "Execution of post deployment tasks successful."
   set_maintenance_mode 0
 
+  echo "Disabling cohesion_rebuild_pending setting."
   DRUSH_PATHS_CACHE_DIRECTORY=$cacheDir $DRUSH_CMD sset cohesion_rebuild_pending 0 -y
 fi
