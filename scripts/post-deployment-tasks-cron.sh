@@ -16,6 +16,11 @@ ARG3=$3
 # Defaults to 3600 seconds = 60 minutes
 SINGLE_SITE_TTL=${ARG3:=3600}
 
+# Reprocess
+ARG4=$4
+# Defaults to default queue
+QUEUE_TYPE=${ARG4:=default}
+
 # Temporary folder where flags are stored for ACSF post deployment tasks.
 FLAGSFOLDER="/mnt/gfs/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/flags"
 
@@ -24,7 +29,7 @@ SITES_JSON="/var/www/site-php/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/multisite-
 SITE_COUNT=$(grep -oP 'acsf_site_id\":\d+' ${SITES_JSON} | grep -oP '\d+' | sort | uniq | wc -l)
 
 ALL_SITES_TTL=$((SITE_COUNT * SINGLE_SITE_TTL / CONCURRENCY))
-COMMAND="acsf-tools:run-background-tasks --timeout ${SINGLE_SITE_TTL}"
+COMMAND="acsf-tools:run-background-tasks --timeout ${SINGLE_SITE_TTL} --queue ${QUEUE_TYPE}"
 DRUSH_COMMAND="drush9"
 
 sleep $TIMEOUT
