@@ -259,7 +259,13 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
       $results[] = [
         'name' => 'Successes',
         'value' => $statuses['totals']['success'],
-        'description' => 'How many sites have been successfully processed. Counts success log files.',
+        'description' => 'How many sites have been successfully processed without errors.',
+      ];
+
+      $results[] = [
+        'name' => 'Successes after errors',
+        'value' => $statuses['totals']['success_error'],
+        'description' => 'How many sites have been successfully processed after errors in previous iterations.',
       ];
 
       $results[] = [
@@ -394,6 +400,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
         'name' => $v['name'],
         'domain' => $v['domain'],
         'success' => $v['success'],
+        'success_error' => $v['success_error'],
         'error' => $v['error'],
         'flag' => $v['flag'],
         'lock' => $v['lock'],
