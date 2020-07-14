@@ -508,23 +508,21 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     $sites = array();
 
     foreach ($acsfSites as $db => $conf) {
-      if (isset($conf['flags']['preferred_domain']) && $conf['flags']['preferred_domain'] === TRUE) {
-        $sites[$db] = array(
-          'success' => 0,
-          'error' => 0,
-          'domain' => reset($conf['domains']),
-        );
+      $sites[$db] = array(
+        'success' => 0,
+        'error' => 0,
+        'domain' => reset($conf['domains']),
+      );
 
-        if (file_exists($gfsFlagsFolder . 'background_tasks_pending_' . $db)) {
-          $sites[$db]['flag'] = file_get_contents($gfsFlagsFolder . 'background_tasks_pending_' . $db);
-        }
+      if (file_exists($gfsFlagsFolder . 'background_tasks_pending_' . $db)) {
+        $sites[$db]['flag'] = file_get_contents($gfsFlagsFolder . 'background_tasks_pending_' . $db);
+      }
 
-        if (file_exists($gfsFlagsFolder . $db . '.lock')) {
-          $sites[$db]['lock'] = 1;
-        }
-        else {
-          $sites[$db]['lock'] = 0;
-        }
+      if (file_exists($gfsFlagsFolder . $db . '.lock')) {
+        $sites[$db]['lock'] = 1;
+      }
+      else {
+        $sites[$db]['lock'] = 0;
       }
     }
 
