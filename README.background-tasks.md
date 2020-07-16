@@ -90,24 +90,24 @@ Create jobs pointing to the postdeployment script (post-deployment-tasks-cron.sh
 
 ```
 # Job 1
-flock -xn /tmp/bayerwsf_acqint_hsc_1.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 0 3"
+flock -xn /tmp/name-your-lock_1.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 0 3"
 # Job 2
-flock -xn /tmp/bayerwsf_acqint_hsc_2.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 9 3"
+flock -xn /tmp/name-your-lock_2.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 9 3"
 # Job 3
-flock -xn /tmp/bayerwsf_acqint_hsc_3.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 18 3"
+flock -xn /tmp/name-your-lock_3.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 18 3"
 # Job 4
-flock -xn /tmp/bayerwsf_acqint_hsc_4.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 27 3"
+flock -xn /tmp/name-your-lock_4.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 27 3"
 # Job 5
-flock -xn /tmp/bayerwsf_acqint_hsc_5.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 36 3"
+flock -xn /tmp/name-your-lock_5.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 36 3"
 # Job 6
-flock -xn /tmp/bayerwsf_acqint_hsc_6.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 45 3"
+flock -xn /tmp/name-your-lock_6.lck -c "/var/www/html/{siteenv}.{sitegroup}/scripts/post-deployment-tasks-cron.sh 45 3"
 
 ```
 
 Optional. Add an error queue job. It will only process jobs which have failed once:
 
  ```
-flock -xn /tmp/bayerwsf_acqint_hsc_error_1.lck -c "/var/www/html/bayerwsf.01acqint/scripts/post-deployment-tasks-cron.sh 0 1 error"
+flock -xn /tmp/name-your-lock_error_1.lck -c "/var/www/html/siteenv.01acqint/scripts/post-deployment-tasks-cron.sh 0 1 error"
 ```
 
 Add email to this file acsf_tools_config.default.yml. And put it in the same folder as your secrets file. Change file name to acsf_tools_config.yml
