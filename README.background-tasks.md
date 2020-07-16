@@ -2,7 +2,7 @@
 
 ## Summary:
 
-Background tasks are designed to execution long running drush commands in the
+Background tasks are designed to execute long running drush commands in the
 background by using multiple concurrent cron jobs. One use case is to offload
 long running "light" tasks from deployment to post deployment to achieve higher
 concurrency.
