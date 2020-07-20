@@ -156,7 +156,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
     // Drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
     // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
     $command_args = preg_split("/'\s'/", $command_args);
