@@ -128,6 +128,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   A quoted, space delimited set of arguments to pass to your drush command.
    * @params $command_options Optional.
    *   A quoted space delimited set of options to pass to your drush command.
+   * @option domain-pattern
+   *   Pattern / keyword to check for choosing the domain for uri parameter.
    * @option profiles
    *   Target sites with specific profiles. Comma list.
    * @option delay
@@ -148,6 +150,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Run cache clear on all sites with delay of 10 seconds between each site.
    * @usage drush acsf-tools-ml cron --use-https=1
    *   Run cron on all sites using secure url for URI.
+   * @usage drush acsf-tools-ml cron --pattern=collection
+   *   Run cron on all sites using domain that contains the pattern "collection" for URI.
+   *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
+   *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $command_args = '', $command_options = '', $options = ['profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
@@ -166,7 +172,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     // (as it was the case with drush8). We try to receive all command specific
     // options as an argument & parse it before invoking the sub-command.
 
-    // Parse list of options to be passed ot the drush sub-command being
+    // Parse list of options to be passed to the drush sub-command being
     // invoked.
     $drush_command_options = [];
     if (!empty($command_options)) {
@@ -204,6 +210,16 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           // which is *.acsitefactory.com. Given this is used as --uri parameter
           // by the drush command, it can have an impact on the drupal process.
           $domain = $details['domains'][1] ?? $details['domains'][0];
+
+          // Find a domain containing the pattern from specified in command options.
+          if (array_key_exists('domain-pattern', $options)) {
+            foreach ($details['domains'] as $possible_domain) {
+              if (strpos($possible_domain, $options['domain-pattern']) !== FALSE) {
+                $domain = $possible_domain;
+                break;
+              }
+            }
+          }
 
           if (array_key_exists('use-https', $options)) {
             if ($options['use-https']) {
