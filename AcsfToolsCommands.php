@@ -212,7 +212,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           $domain = $details['domains'][1] ?? $details['domains'][0];
 
           // Find a domain containing the pattern from specified in command options.
-          if (array_key_exists('domain-pattern', $options)) {
+          if (array_key_exists('domain-pattern', $options) && !empty($options['domain-pattern'])) {
             foreach ($details['domains'] as $possible_domain) {
               if (strpos($possible_domain, $options['domain-pattern']) !== FALSE) {
                 $domain = $possible_domain;
