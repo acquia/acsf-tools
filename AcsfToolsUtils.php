@@ -55,8 +55,6 @@ class AcsfToolsUtils extends DrushCommands {
    * @return array|bool
    */
   function getRemoteSites($config, $env = 'prod') {
-
-    // TODO: What happens when more than 100 sites? Implement paging.
     $sites_url = $this->getFactoryUrl($config, '/api/v1/sites?limit=100', $env);
     return $this->curlWrapper($config->username, $config->password, $sites_url)->sites;
   }
@@ -69,7 +67,7 @@ class AcsfToolsUtils extends DrushCommands {
   public function promptConfirm() {
 
     $this->output()->writeln(
-      dt('You are about to run a command on all the sites of your factory. 
+      dt('You are about to run a command on all the sites of your factory.
         Do you confirm you want to do that? If so, type \'yes\''));
     if (!$this->io()->confirm(dt('Do you want to continue?'))) {
       throw new UserAbortException();
@@ -104,9 +102,12 @@ class AcsfToolsUtils extends DrushCommands {
    *
    * @return mixed
    */
-  public function getRestConfig() {
+  public function getRestConfig($path = NULL) {
 
-    $path = realpath(dirname(__FILE__));
+    if ($path == NULL) {
+      $path = realpath(dirname(__FILE__));
+    }
+
     $yaml = Yaml::parse(file_get_contents($path . '/acsf_tools_config.yml'));
     if ($yaml === FALSE) {
       $error  = 'acsf_tools_config.yml not found. Make sure to copy/rename ';
@@ -126,6 +127,8 @@ class AcsfToolsUtils extends DrushCommands {
     $config->subdomain_pattern = $yaml['subdomain_pattern'];
     $config->prod_web = $yaml['prod_web'];
     $config->dev_web = $yaml['dev_web'];
+    $config->email_logs_from = $yaml['email_logs_from'];
+    $config->email_logs_to = $yaml['email_logs_to'];
 
     return $config;
   }
