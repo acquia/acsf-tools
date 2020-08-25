@@ -157,34 +157,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @aliases sfml,acsf-tools-ml
    */
   public function ml($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
-    // Drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
-    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
-    $command_args = preg_split("/'\s'/", $command_args);
+    $command_args = $this->getCommandArgs($command_args);
 
-    // Trim off "'" that will stay back after preg split with 1st & the last arg.
-    $command_args[0] = ltrim($command_args[0], "'");
-    $command_args[count($command_args) -1] = rtrim($command_args[count($command_args) -1], "'");
-
-    // Drush 9 has strict validation around keys via which option values can be
-    // passed to the command. Its expected to throw exception if an option name
-    // not declared by the commands definition is passed to it. Dynamically
-    // passing options to all commands will not be directly possible with drush9
-    // (as it was the case with drush8). We try to receive all command specific
-    // options as an argument & parse it before invoking the sub-command.
-
-    // Parse list of options to be passed to the drush sub-command being
-    // invoked.
-    $drush_command_options = [];
-    if (!empty($command_options)) {
-      $command_options = preg_split("/'\s'/", $command_options);
-      $command_options[0] = ltrim($command_options[0], "'");
-      $command_options[count($command_options) -1] = rtrim($command_options[count($command_options) -1], "'");
-
-      foreach ($command_options as $option_value) {
-        list($key, $value) = explode('=', $option_value);
-        $drush_command_options[$key] = $value;
-      }
-    }
+    $drush_command_options = $this->getCommandOptions($command_options);
 
     // Command always passes the default option as `yes` irrespective if `--no`
     // option used. Pass confirmation as `no` if use that.
@@ -206,70 +181,258 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       do {
         foreach ($sites as $delta => $details) {
-          // Get the first custom domain if any. Otherwise use the first domain
-          // which is *.acsitefactory.com. Given this is used as --uri parameter
-          // by the drush command, it can have an impact on the drupal process.
-          $domain = $details['domains'][1] ?? $details['domains'][0];
+          $domain = $this->getDomain($details, $options);
 
-          // Find a domain containing the pattern from specified in command options.
-          if (array_key_exists('domain-pattern', $options) && !empty($options['domain-pattern'])) {
-            foreach ($details['domains'] as $possible_domain) {
-              if (strpos($possible_domain, $options['domain-pattern']) !== FALSE) {
-                $domain = $possible_domain;
-                break;
-              }
-            }
-          }
-
-          if (array_key_exists('use-https', $options)) {
-            if ($options['use-https']) {
-              // Use secure urls in URI to ensure base_url in Drupal uses https.
-              $domain = 'https://' . $domain;
-            }
-          }
-
-          if (!$this->isSiteAvailable($details)) {
-            $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
+          $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options, $profiles ?? []);
+          if (empty($process)) {
             continue;
-          };
-
-          $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
-          if (!empty($profiles) && file_exists($site_settings_filepath)) {
-            $site_settings = @file_get_contents($site_settings_filepath);
-            if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
-              if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
-                $this->output()->writeln("\n=> Skipping command on $domain as installation profile does not match");
-                continue;
-              }
-            }
           }
 
-          $drush_command_options['uri'] = $domain;
           $this->output()->writeln("\n=> Running command on $domain");
-
-          $self = $this->siteAliasManager()->getSelf();
-          $process = Drush::drush($self, $cmd, $command_args, $drush_command_options);
           $exit_code = $process->run();
-
           if ($exit_code !== 0) {
-            $this->output()
-              ->writeln("\n=> The command failed to execute for the site $domain.");
+            $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
             $this->output()->writeln($process->getErrorOutput());
             continue;
           }
 
-          // Delay in running the command for next site.
-          if ($delay > 0 && $i < (count($sites) - 1)) {
-            $this->output()
-              ->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
-            sleep($delay);
-          }
-
           // Print the output.
           $this->output()->writeln($process->getOutput());
+
+          // Delay in running the command for next site.
+          if ($delay > 0 && $i < (count($sites) - 1)) {
+            $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
+            sleep($delay);
+          }
         }
       } while ($total_time_limit && time() < $end && !empty($sites));
     }
+  }
+
+  /**
+   * Runs the passed drush command against all the sites of the factory (mlc stands for ml + concurrent).
+   *
+   * @command acsf-tools:mlc
+   *
+   * @bootstrap site
+   * @params $cmd
+   *   The drush command you want to run against all sites in your factory.
+   * @params $command_args Optional.
+   *   A quoted, space delimited set of arguments to pass to your drush command.
+   * @params $command_options Optional.
+   *   A quoted space delimited set of options to pass to your drush command.
+   * @option domain-pattern
+   *   Pattern / keyword to check for choosing the domain for uri parameter.
+   * @option profiles
+   *   Target sites with specific profiles. Comma list.
+   * @option use-https
+   *   Use secure urls for drush commands.
+   * @usage drush acsf-tools-mlc st
+   *   Get output of `drush status` for all the sites.
+   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'"
+   *   Get value of site_mail variable for all the sites.
+   * @usage drush acsf-tools-mlc upwd "'admin' 'password'"
+   *   Update user password.
+   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
+   *   Fetch config value in JSON format.
+   * @usage drush acsf-tools-mlc cr --delay=10
+   *   Run cache clear on all sites with delay of 10 seconds between each site.
+   * @usage drush acsf-tools-mlc cron --use-https=1
+   *   Run cron on all sites using secure url for URI.
+   * @usage drush acsf-tools-mlc cron --pattern=collection
+   *   Run cron on all sites using domain that contains the pattern "collection" for URI.
+   *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
+   *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
+   * @aliases sfmlc,acsf-tools-mlc
+   */
+  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'profiles' => '', 'use-https' => 0]) {
+    // Look for list of sites and loop over it.
+    $sites = $this->getSites();
+    if (empty($sites)) {
+      return;
+    }
+
+    $command_args = $this->getCommandArgs($command_args);
+
+    // Parse list of options to be passed to the drush sub-command being invoked.
+    $drush_command_options = $this->getCommandOptions($command_options);
+
+    // Command always passes the default option as `yes` irrespective if `--no`
+    // option used. Pass confirmation as `no` if use that.
+    if ($options['no']) {
+      $drush_command_options['no'] = TRUE;
+    }
+
+    $profiles = [];
+    if (!empty($options['profiles'])) {
+      $profiles = explode(',', $options['profiles']);
+      unset($options['profiles']);
+    }
+
+    $processes = [];
+
+    foreach ($sites as $delta => $details) {
+      $domain = $this->getDomain($details, $options);
+      $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options, $profiles);
+      if (empty($process)) {
+        continue;
+      }
+
+      $processes[$domain] = $process;
+      $this->output()->writeln("\n=> Executing command on $domain");
+      $process->start();
+    }
+
+    // Wait while commands are finished and log output.
+    while (!empty($processes)) {
+      foreach ($processes as $domain => $process) {
+        if (!$process->isTerminated()) {
+          continue;
+        }
+
+        // Remove from array now.
+        unset($processes[$domain]);
+
+        if ($process->isSuccessful()) {
+          $this->output()->writeln("\n=> The command executed successfully for the site $domain.");
+          $this->output()->writeln($process->getOutput());
+        }
+        else {
+          $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
+          $this->output()->writeln($process->getErrorOutput());
+        }
+      }
+    }
+  }
+
+  /**
+   * Wrapper function to parse command arguments.
+   *
+   * @param string $command_args
+   *   Command arguments.
+   *
+   * @return array
+   *   Arguments as array.
+   */
+  protected function getCommandArgs($command_args) {
+    // Drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
+    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
+    $command_args = preg_split("/'\s'/", $command_args);
+
+    // Trim off "'" that will stay back after preg split with 1st & the last arg.
+    $command_args[0] = ltrim($command_args[0], "'");
+    $command_args[count($command_args) -1] = rtrim($command_args[count($command_args) -1], "'");
+
+    return $command_args;
+  }
+
+  /**
+   * Wrapper function to parse command options.
+   *
+   * @param string $command_options
+   *   Command options.
+   *
+   * @return array
+   *   Options as array.
+   */
+  protected function getCommandOptions($command_options) {
+    // Drush 9 has strict validation around keys via which option values can be
+    // passed to the command. Its expected to throw exception if an option name
+    // not declared by the commands definition is passed to it. Dynamically
+    // passing options to all commands will not be directly possible with drush9
+    // (as it was the case with drush8). We try to receive all command specific
+    // options as an argument & parse it before invoking the sub-command.
+    if (empty($command_options)) {
+      return [];
+    }
+
+    $command_options = preg_split("/'\s'/", $command_options);
+    $command_options[0] = ltrim($command_options[0], "'");
+    $command_options[count($command_options) -1] = rtrim($command_options[count($command_options) -1], "'");
+
+    foreach ($command_options as $option_value) {
+      [$key, $value] = explode('=', $option_value);
+      $drush_command_options[$key] = $value;
+    }
+
+    return $drush_command_options;
+  }
+
+  /**
+   * Get domain for particular site.
+   * @param array $site
+   *   ACSF Site data.
+   * @param array $options
+   *   Command options.
+   *
+   * @return string
+   *   Domain.
+   */
+  protected function getDomain(array $site, $options) {
+    // Get the first custom domain if any. Otherwise use the first domain
+    // which is *.acsitefactory.com. Given this is used as --uri parameter
+    // by the drush command, it can have an impact on the drupal process.
+    $domain = $site['domains'][1] ?? $site['domains'][0];
+
+    // Find a domain containing the pattern from specified in command options.
+    if (array_key_exists('domain-pattern', $options) && !empty($options['domain-pattern'])) {
+      foreach ($site['domains'] as $possible_domain) {
+        if (strpos($possible_domain, $options['domain-pattern']) !== FALSE) {
+          $domain = $possible_domain;
+          break;
+        }
+      }
+    }
+
+    if (array_key_exists('use-https', $options) && $options['use-https']) {
+      // Use secure urls in URI to ensure base_url in Drupal uses https.
+      $domain = 'https://' . $domain;
+    }
+
+    return $domain;
+  }
+
+  /**
+   * Wrapper function to prepare process if site available for processing.
+   *
+   * @param string $domain
+   *   Domain.
+   * @param array $details
+   *   ACSF Site details.
+   * @param string $cmd
+   *   Drush command.
+   * @param array $command_args
+   *   Drush command arguments.
+   * @param array $drush_command_options
+   *   Drush command options.
+   * @param array $profiles
+   *   Profiles to process the command for.
+   *
+   * @return \Symfony\Component\Process\Process|null
+   *   Process object if site available for processing.
+   */
+  protected function prepareCommand(string $domain, array $details, string $cmd, array $command_args, array $drush_command_options, array $profiles) {
+    if (!$this->isSiteAvailable($details)) {
+      $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
+      return NULL;
+    };
+
+    $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
+    if (!empty($profiles) && file_exists($site_settings_filepath)) {
+      $site_settings = @file_get_contents($site_settings_filepath);
+      if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
+        if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
+          $this->output()->writeln("\n=> Skipping command on $domain as installation profile does not match");
+          return NULL;
+        }
+      }
+    }
+
+    $drush_command_options['uri'] = $domain;
+
+    $self = $this->siteAliasManager()->getSelf();
+    return Drush::drush($self, $cmd, $command_args, $drush_command_options);
+
   }
 
   /**
