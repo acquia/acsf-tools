@@ -40,6 +40,12 @@ class AcsfToolsUtils extends DrushCommands {
         }
 
         $sites[$site_details['name']]['domains'][] = $domain;
+
+        // Identify the site machine name from the acsitefactory.com domain.
+        $machine_name = [];
+        if (preg_match('/(.*)\..*\.acsitefactory\.com/', $domain, $machine_name)) {
+          $sites[$site_details['name']]['machine_name'] = $machine_name[1];
+        }
       }
     }
     else {
