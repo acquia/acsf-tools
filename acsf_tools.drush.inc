@@ -73,9 +73,9 @@ function acsf_tools_drush_command() {
     'bootstrap' => DRUSH_BOOTSTRAP_DRUPAL_SITE,
     'examples' => [
       'drush8 acsf-tools-restore' => 'Restore DB dumps for the sites of the factory. Default source folder will be used.',
-      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
-      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip' => 'Same as above but using compressed DB dumps.',
-      'drush8 acsf-tools-restore --source_folder=/home/project/backup/20160617 --gzip --no-prompt' => 'Restore DB dumps forcefully without any prompt message needed for confirmation on all the sites of your factory.',
+      'drush8 acsf-tools-restore --source-folder=/home/project/backup/20160617' => 'Restore DB dumps for the sites of the factory using files from the specified folder.',
+      'drush8 acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip' => 'Same as above but using compressed DB dumps.',
+      'drush8 acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip --no-prompt' => 'Restore DB dumps forcefully without any prompt message needed for confirmation on all the sites of your factory.',
     ],
     'aliases' => ['sfre'],
   ];
