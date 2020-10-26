@@ -436,53 +436,57 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   }
 
   /**
-   * Make a DB dump for each site of the factory.
+   * Create a database backup for each site of the factory.
    *
    * @command acsf-tools:dump
    *
    * @bootstrap site
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option result-folder
-   *   The folder in which the dumps will be written. Defaults to ~/drush-backups.
+   *   The folder in which the backups will be written. Defaults to ~/drush-backups/[YYYYmmdd-hhmm].
    * @option gzip
-   *   Compress the dump into a zip file.
+   *   Compress the backups into a zip file.
    *
    * @usage drush acsf-tools-dump
-   *   Create DB dumps for the sites of the factory. Default result folder will be used.
-   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617
-   *   Create DB dumps for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.
+   *   Create database backups for the sites of the factory. Default result folder (~/drush-backups/[YYYYmmdd-hhmm])  will be used.
+   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/1.0.9
+   *   Create database backups for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.
    * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
    *   Same as above but using options of sql-dump command.
    *
    * @aliases sfdu,acsf-tools-dump
    */
-  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE]) {
+  public function dbDump(array $options = ['result-folder' => NULL, 'gzip' => FALSE]) {
+
+    // Use the default result folder if not provided.
+    if (empty($options['result-folder'])) {
+      $options['result-folder'] = $_SERVER['HOME'] . '/drush-backups/' . date('Ymd-Hi');
+    }
 
     // Ask for confirmation before running the command.
-    if (!$this->promptConfirm()) {
+    if (!$this->io()->confirm("Are you sure you want to take database dumps of all the sites of the factory in {$options['result-folder']}.")) {
       return;
     }
 
     // Identify target folder.
-    $result_folder = $options['result-folder'];
-    $current_date = date("Ymd");
-    // Folder based on current date.
-    $backup_result_folder = $result_folder . '/' . $current_date;
+    $backup_result_folder = $options['result-folder'];
+
     // If dump directory does not exist.
     if(!file_exists($backup_result_folder)){
-      $directory_message = sprintf('Dump directory "%s" does not exist. Do you want to create this directory?', $backup_result_folder);
-      if (!$this->io()->confirm($directory_message)) {
+      if (!$this->io()->confirm("Target directory ($backup_result_folder) does not exist. Do you want to create this directory?")) {
         throw new UserAbortException();
       }
+      $this->output()->writeln("=> Creating $backup_result_folder directory ...");
       // Create dump directory.
-      if (!mkdir($backup_result_folder, 0755, TRUE)) {
-        $this->io()->error(sprintf('Unable to create dump directory "%s"', $backup_result_folder));
+      if (!mkdir($backup_result_folder, 0755, TRUE) || !file_exists($backup_result_folder)) {
+        $this->io()->error("Unable to create the dump directory $backup_result_folder.");
         return;
       }
       else{
-        $this->output()->writeln("\n=> Folder created $backup_result_folder");
+        $this->io()->success("Folder $backup_result_folder has been created.");
       }
     }
+    // @TODO: Handle the case the destination folder is not empty.
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
@@ -497,7 +501,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
-        $prefix = explode('.', $domain)[0];
 
         // Get options passed to this drush command & append it with options
         // needed by the next command to execute.
@@ -506,10 +509,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         unset($options['php-options']);
         unset($options['result-folder']);
 
-        $options['result-file'] = $backup_result_folder . '/' . $prefix . '.sql';
+        $options['result-file'] = $backup_result_folder . '/' . $details['machine_name'] . '.sql';
         $options['uri'] = $domain;
 
-        $this->logger()->info("\n=> Running sfdu command on $domain");
+        $this->output()->writeln("=> Taking database dump of {$details['machine_name']} ...");
         $self = $this->siteAliasManager()->getSelf();
         // Remove empty values from array.
         $options = array_filter($options);
@@ -518,13 +521,15 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
         if ($exit_code !== 0) {
           // Throw an exception with details about the failed process.
-          $this->output()
-            ->writeln("\n=> The command failed to execute for the site $domain.");
+          $this->io()->error("The command failed to execute for the site {$details['machine_name']}.");
           continue;
         }
 
-        // Log Success Message
-        $this->logger()->info("\n=> DB Dump for the site completed Successfully $domain");
+        // Log success message.
+        if (isset($options['gzip']) && $options['gzip']) {
+          $options['result-file'] .= '.gz';
+        }
+        $this->io()->success("Database dump of {$details['machine_name']} site successfully saved in {$options['result-file']}.");
       }
     }
   }
