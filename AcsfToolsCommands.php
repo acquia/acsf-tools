@@ -189,15 +189,23 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           }
 
           $this->output()->writeln("\n=> Running command on $domain");
-          $exit_code = $process->run();
-          if ($exit_code !== 0) {
+          $process->mustRun();
+
+          if (!$process->isSuccessful()) {
             $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
             $this->output()->writeln($process->getErrorOutput());
             continue;
           }
 
-          // Print the output.
-          $this->output()->writeln($process->getOutput());
+          // Print the output. Some commands (such as updb) are logging
+          // "normal" messages in the error output so we are displaying these
+          // as well.
+          if (!empty($process->getOutput())) {
+            $this->output()->writeln($process->getOutput());
+          }
+          if (!empty($process->getErrorOutput())) {
+            $this->output()->writeln($process->getErrorOutput());
+          }
 
           // Delay in running the command for next site.
           if ($delay > 0 && $i < (count($sites) - 1)) {
@@ -296,6 +304,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         if ($process->isSuccessful()) {
           $this->output()->writeln("\n=> The command executed successfully for the site $domain.");
           $this->output()->writeln($process->getOutput());
+          $this->output()->writeln($process->getErrorOutput());
         }
         else {
           $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
