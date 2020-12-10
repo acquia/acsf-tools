@@ -24,7 +24,12 @@ QUEUE_TYPE=${ARG4:=default}
 # Temporary folder where flags are stored for ACSF post deployment tasks.
 FLAGSFOLDER="/mnt/gfs/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/flags"
 
-SITES_JSON="/var/www/site-php/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/multisite-config.json"
+DEFAULT_SITES_JSON="/var/www/site-php/${AH_SITE_GROUP}.${AH_SITE_ENVIRONMENT}/multisite-config.json"
+# Path to sites.json
+ARG5=$5
+SITES_JSON=${ARG5:=DEFAULT_SITES_JSON}
+
+echo "Using ${SITES_JSON}"
 
 SITE_COUNT=$(grep -oP 'acsf_site_id\":\d+' ${SITES_JSON} | grep -oP '\d+' | sort | uniq | wc -l)
 
@@ -48,6 +53,7 @@ if [ "$(ls -A $FLAGSFOLDER)" ]; then
     --drush=${DRUSH_COMMAND} \
     --domain-filter="preferred" \
     --cron-command="${COMMAND}"
+    --json-file="${SITES_JSON}"
 
   END_TIME=$(date +%s)
   TOTAL_TIME=$((END_TIME - START_TIME))
