@@ -63,6 +63,76 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   }
 
   /**
+   * Generate a sites.json file containing sites with background tasks pending.
+   *
+   * @command acsf-tools:generate-background-tasks-sites-json
+   *
+   * @option factory-sites-json
+   *   The existing sites.json for the factory.
+   *
+   * @option destination
+   *   The filename of the JSON file to be generated.
+   *
+   * @bootstrap configuration
+   */
+  public function generateBackgroundTasksSitesJson($options = ['factory-sites-json' => null, 'destination' => null]) {
+    $sites_json = gardens_site_data_get_filepath();
+    $destination = "/mnt/files/{$_ENV['AH_SITE_GROUP']}.{$_ENV['AH_SITE_ENVIRONMENT']}/sites/g/files-private/ready-to-process-sites.json";
+
+    if (!empty($options['factory-sites-json'])) {
+      $sites_json = $options['factory-sites-json'];
+    }
+
+    if (!file_exists($sites_json)) {
+      throw new \Exception(dt($this->getCurrentTime() . ' - Could not locate file: ' . $sites_json));
+    }
+
+    if (!empty($options['destination'])) {
+      $destination = $options['destination'];
+    }
+
+    $pending = $this->getBackgroundTasksSitesStatus();
+
+    $this->say("\n" . $this->getCurrentTime() . " - Generating sites.json for background tasks processing.");
+    $this->say("\n" . $this->getCurrentTime() . " - Source: " . $sites_json);
+    $this->say("\n" . $this->getCurrentTime() . " - Destination: " . $destination);
+
+    // Obtain the list of sites.
+    if (($json = file_get_contents($sites_json)) == false) {
+      throw new \Exception(dt($this->getCurrentTime() . "Could not open file: " . $sites_json));
+    }
+
+    $data = json_decode($json, TRUE);
+
+    if (empty($data['sites'])) {
+      throw new \Exception(dt($this->getCurrentTime() . "No sites in file: " . $sites_json));
+    }
+
+    $sites_to_include = [];
+
+    // Check for sites to include, where they have not already been processed.
+    foreach($pending['sites'] as $site) {
+      if (!empty($site['domain']) && !empty($site['flag']) && !($site['success'] && ! ($site['failure']))) {
+        $this->say("\n" . $this->getCurrentTime() . " - Including: " . $site['domain']);
+        $sites_to_include[$site['domain']] = TRUE;
+      }
+    }
+
+    foreach ($data['sites'] as $key => $value) {
+      if (!array_key_exists($key, $sites_to_include)) {
+        $this->say("\n" . $this->getCurrentTime() . " - Excluding: " . $key);
+        unset($data['sites'][$key]);
+      }
+    }
+
+    // Write destination file as json.
+    $this->say("\n" . $this->getCurrentTime() . " - Writing file to  " . $destination);
+    $fp = fopen($destination, 'w');
+    fwrite($fp, json_encode($data));
+    fclose($fp);
+  }
+
+  /**
    * Runs background tasks.
    *
    * @command acsf-tools:run-background-tasks
