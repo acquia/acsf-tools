@@ -189,9 +189,16 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           }
 
           $this->output()->writeln("\n=> Running command on $domain");
-          $process->mustRun();
 
-          if (!$process->isSuccessful()) {
+          $is_command_success = TRUE;
+          try {
+            $process->mustRun();
+          }
+          catch (\Exception $e) {
+            $is_command_success = FALSE;
+          }
+
+          if (!$is_command_success || !$process->isSuccessful()) {
             $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
             $this->output()->writeln($process->getErrorOutput());
             continue;
