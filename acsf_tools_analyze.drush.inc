@@ -79,7 +79,8 @@ function drush_acsf_tools_analyze_validate() {
     $info = drush_acsf_tools_analyze_get_info();
 
     if (!isset($info['drupal-version'])) {
-      return drush_set_error('FACTORY_INFO_NOT_AVAILABLE', dt('Could not get basic information about @%s.', array('%s' => $alias)));
+      unlink($info_file);
+      return drush_set_error('FACTORY_INFO_NOT_AVAILABLE', dt('Could not get basic information about @%s. Check if you can connect over SSH using alias.', array('%s' => $alias)));
     }
     elseif (strpos($info['drupal-version'], '7') === 0) {
       $info['drupal-major-version'] = 7;
@@ -92,20 +93,6 @@ function drush_acsf_tools_analyze_validate() {
     }
 
     drush_log(dt("Drupal version: %s (%m).", array('%s' => $info['drupal-version'], '%m' => $info['drupal-major-version'])), LogLevel::OK);
-
-    $sites = drush_acsf_tools_analyze_get_sites();
-    if (!is_array($sites)) {
-      return drush_set_error('NO_SITES_INFORMATION', dt('Could not retrieve sites list.'));
-    }
-    else {
-      drush_log(dt("Total domains: %s.", array('%s' => count($sites))), LogLevel::OK);
-    }
-
-    $custom_domains = drush_acsf_tools_analyze_get_sites_custom();
-    drush_log(dt("Custom domains: %s.", array('%s' => count($custom_domains))), LogLevel::OK);
-
-    $preferred_domains = drush_acsf_tools_analyze_get_sites_preferred();
-    drush_log(dt("Preferred domains (this shows accurate site count): %s.", array('%s' => count($preferred_domains))), LogLevel::OK);
   }
 }
 
@@ -321,23 +308,21 @@ function drush_acsf_tools_analyze_get_site_views($rebuild = FALSE) {
       if ($info['drupal-major-version'] == 8) {
         $out_arr = [];
         exec("drush @$alias --uri=$uri vl --format=json", $out_arr);
-        $out = implode($out_arr);
 
-        // @TODO check output.
+        $clean_arr = drush_acsf_tools_analyze_clean_drush_shell_json_output($out_arr);
+        $out = implode($clean_arr);
 
         $views_info[$uri]['views'] = json_decode($out, TRUE);
       }
       elseif ($info['drupal-major-version'] == 7) {
         $out_arr = [];
-        exec("drush @$alias --uri=$uri sqlq 'select type, count(*) from block_content group by type;'", $out_arr);
+        $c = '$f = function($v){return array("name" => $v->name, "status" => $v->disabled !== TRUE);}; print json_encode(array_map($f, views_get_all_views()));';
+        exec("drush @$alias --uri=$uri php-eval '$c'", $out_arr);
 
-        $entities_info[$uri]['entities']['view'] = [];
-        foreach ($out_arr as $r) {
-          $l = explode("\t", $r);
-          if (isset($l[1])) {
-            $entities_info[$uri]['entities']['view'][$l[0]] = $l[1];
-          }
-        }
+        $clean_arr = drush_acsf_tools_analyze_clean_drush_shell_json_output($out_arr);
+        $out = implode($clean_arr);
+
+        $views_info[$uri]['views'] = json_decode($out, TRUE);
       }
 
       $count++;
@@ -376,18 +361,19 @@ function drush_acsf_tools_analyze_get_site_statuses($rebuild = FALSE) {
 
       $out_arr = [];
       exec("drush @$alias --uri=$uri status --format=json --fields=drupal-version,install-profile,uri,theme", $out_arr);
-      $out = implode($out_arr);
 
-      // @TODO check output.
+      $clean_arr = drush_acsf_tools_analyze_clean_drush_shell_json_output($out_arr);
+      $out = implode($clean_arr);
+
 
       $sites[$uri]['status'] = json_decode($out, TRUE);
 
       drush_log(dt("Getting module list of site %s (%i of %t).", $arg), LogLevel::OK); // @TODO review log level.
       $out_arr = [];
       exec("drush @$alias --uri=$uri pml --format=json", $out_arr);
-      $out = implode($out_arr);
 
-      // @TODO check output.
+      $clean_arr = drush_acsf_tools_analyze_clean_drush_shell_json_output($out_arr);
+      $out = implode($clean_arr);
 
       $sites[$uri]['modules'] = json_decode($out, TRUE);
 
@@ -403,6 +389,22 @@ function drush_acsf_tools_analyze_get_site_statuses($rebuild = FALSE) {
   $sites = json_decode(file_get_contents($status_file), TRUE);
 
   return $sites;
+}
+
+/**
+ * Clean up drush shell output from warning messages and similar strings.
+ */
+function drush_acsf_tools_analyze_clean_drush_shell_json_output($shell_string_array) {
+  foreach ($shell_string_array as $i => $s) {
+    if (substr($s, 0, 1) === '{') {
+      break;
+    }
+    else {
+      unset($shell_string_array[$i]);
+    }
+  }
+
+  return $shell_string_array;
 }
 
 /**
@@ -439,12 +441,18 @@ function drush_acsf_tools_analyze_get_sites_preferred() {
 /**
  * Get sites info from sites.json.
  */
-function drush_acsf_tools_analyze_get_sites() {
+function drush_acsf_tools_analyze_get_sites($rebuild = FALSE) {
   $sites_file = drush_acsf_tools_analyze_get_file_path('sites.json');
+
+  if ($rebuild) {
+    unlink($sites_file);
+  }
+
   $alias = drush_acsf_tools_analyze_get_alias();
 
-  if (!file_exists($sites_file)) {
-    $domains = drush_acsf_tools_analyze_get_cli_domains();
+  $domains = drush_acsf_tools_analyze_get_cli_domains();
+
+  if (!file_exists($sites_file) || !empty($domains)) {
 
     // If --domains option is not set, use ACSF to get a site list.
     if (empty($domains)) {
@@ -559,9 +567,31 @@ function drush_acsf_tools_analyze() {
   if (!$rebuild) {
     $rebuild = FALSE;
   }
+
+  drush_acsf_tools_analyze_get_sites($rebuild);
+
+  $sites = drush_acsf_tools_analyze_get_sites();
+  if (!is_array($sites)) {
+    return drush_set_error('NO_SITES_INFORMATION', dt('Could not retrieve sites list.'));
+  }
+  else {
+    drush_log(dt("Total domains: %s.", array('%s' => count($sites))), LogLevel::OK);
+  }
+
+  $custom_domains = drush_acsf_tools_analyze_get_sites_custom();
+  drush_log(dt("Custom domains: %s.", array('%s' => count($custom_domains))), LogLevel::OK);
+
+  $preferred_domains = drush_acsf_tools_analyze_get_sites_preferred();
+  drush_log(dt("Preferred domains (this shows accurate site count): %s.", array('%s' => count($preferred_domains))), LogLevel::OK);
+
+
   $rebuild_csv = drush_get_option('rebuild-csv');
   if (!$rebuild_csv) {
     $rebuild_csv = FALSE;
+  }
+  else {
+    // If rebuild-csv option is set, force format to csv
+    $format = 'csv';
   }
 
   $types = drush_get_option('types');
