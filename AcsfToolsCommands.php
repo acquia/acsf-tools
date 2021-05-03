@@ -650,9 +650,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           continue;
         }
 
-        $result = json_decode($sql_connect_process->getOutput(), TRUE);
+        $result = $sql_connect_process->getOutput();
 
-        if (!empty($result) && array_key_exists('object', $result)) {
+        if (!empty($result)) {
           $sql_drop_process = Drush::drush($self, 'sql-drop', $arguments, $options);
           $sql_drop_process_exit_code = $sql_drop_process->run();
 
@@ -663,7 +663,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
             continue;
           }
 
-          $shell_execution_process = Drush::shell($result['object'] . ' < ' . $source_file);
+          // Ensure that we do not have any carriage returns in our output.
+          $result = str_replace(array("\r", "\n"), '', $result);
+          $shell_execution_process = Drush::shell('cat ' . $source_file . ' | ' . $result);
           $exit_code_shell = $shell_execution_process->run();
 
           if ($exit_code_shell !== 0) {
@@ -672,6 +674,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
               ->writeln("\n=> The command failed to execute for the site $domain.");
             continue;
           }
+        }
+        else {
+          $this->logger()->error("Skipping restore because result of sql-connect was empty.");
         }
 
         // Remove the temporary decompressed dump
