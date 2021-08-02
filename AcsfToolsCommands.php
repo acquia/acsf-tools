@@ -248,6 +248,8 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   The folder in which the dumps will be written. Defaults to ~/drush-backups.
    * @option gzip
    *   Compress the dump into a zip file.
+   * @option sql-dump-extra
+   *   Add extra sql-dump options.
    *
    * @usage drush acsf-tools-dump
    *   Create DB dumps for the sites of the factory. Default result folder will be used.
@@ -255,10 +257,12 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Create DB dumps for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.
    * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
    *   Same as above but using options of sql-dump command.
+   * @usage drush sfdu -v --sql-dump-extra="--no-tablespaces --compact" --result-folder=/tmp
+   *   Add extra options to sql-dump command.
    *
    * @aliases sfdu,acsf-tools-dump
    */
-  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE]) {
+  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE, 'sql-dump-extra' => '']) {
 
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
@@ -278,10 +282,14 @@ class AcsfToolsCommands extends AcsfToolsUtils {
         return;
       }
     }
-
     // Identify target folder.
     $result_folder = $options['result-folder'];
-
+    // Validate syntax and Identify the sql parameters.
+    $sql_parameters = isset($options['sql-dump-extra']) ? $options['sql-dump-extra'] : '';
+    if (!preg_match('/^[^ ].* .*[^ ]$/', $sql_parameters)) {
+      $this->io()->error(sprintf('Sqldump options syntax error: use drush sfdu --help for usage.'));
+      return;
+    }
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
       $arguments = drush_get_arguments();
@@ -292,7 +300,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
       unset($options['php-options']);
 
       unset($options['result-folder']);
-
+      $options = array_merge($options, explode(' ', $sql_parameters));
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
         $prefix = explode('.', $domain)[0];
