@@ -286,7 +286,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
     $result_folder = $options['result-folder'];
     // Validate syntax and Identify the sql parameters.
     $sql_parameters = isset($options['sql-dump-extra']) ? $options['sql-dump-extra'] : '';
-    if (!preg_match('/^[^ ].* .*[^ ]$/', $sql_parameters)) {
+    if (!preg_match('/^[^ ]+( [^ ]+)*$/', $sql_parameters)) {
       $this->io()->error(sprintf('Sqldump options syntax error: use drush sfdu --help for usage.'));
       return;
     }
