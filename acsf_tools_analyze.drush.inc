@@ -516,7 +516,10 @@ function drush_acsf_tools_analyze_get_cli_domains() {
  */
 function drush_acsf_tools_analyze_get_info() {
   $info_file = drush_acsf_tools_analyze_get_file_path('info.json');
-  $info = json_decode(file_get_contents($info_file), TRUE);
+
+  $raw_info = drush_acsf_tools_analyze_clean_drush_shell_json_output(file($info_file));
+  $info = implode($raw_info);
+  $info = json_decode($info, TRUE);
 
   if (strpos($info['drupal-version'], '7') === 0) {
     $info['drupal-major-version'] = 7;
