@@ -248,7 +248,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   The folder in which the dumps will be written. Defaults to ~/drush-backups.
    * @option gzip
    *   Compress the dump into a zip file.
-   * @option sql-dump-extra
+   * @option extra-dump
    *   Add extra sql-dump options.
    *
    * @usage drush acsf-tools-dump
@@ -257,18 +257,18 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    *   Create DB dumps for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.
    * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
    *   Same as above but using options of sql-dump command.
-   * @usage drush sfdu -v --sql-dump-extra="--no-tablespaces --compact" --result-folder=/tmp
+   * @usage drush sfdu -v --extra-dump="--no-tablespaces --compact" --result-folder=/tmp
    *   Add extra options to sql-dump command.
    *
    * @aliases sfdu,acsf-tools-dump
    */
-  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE, 'sql-dump-extra' => '']) {
+  public function dbDump(array $options = ['result-folder' => '~/drush-backups', 'gzip' => FALSE, 'extra-dump' => '']) {
 
     // Ask for confirmation before running the command.
     if (!$this->promptConfirm()) {
       return;
     }
-
+echo 'in';
     // If dump directory does not exist.
     if (!file_exists($options['result-folder'])) {
       $directory_message = sprintf('Dump directory "%s" does not exist. Do you want to create this directory?', $options['result-folder']);
@@ -285,7 +285,7 @@ class AcsfToolsCommands extends AcsfToolsUtils {
     // Identify target folder.
     $result_folder = $options['result-folder'];
     // Validate syntax and Identify the sql parameters.
-    $sql_parameters = isset($options['sql-dump-extra']) ? $options['sql-dump-extra'] : '';
+    $sql_parameters = isset($options['extra-dump']) ? $options['extra-dump'] : '';
     if (!preg_match('/^[^ ]+( [^ ]+)*$/', $sql_parameters)) {
       $this->io()->error(sprintf('Sqldump options syntax error: use drush sfdu --help for usage.'));
       return;
