@@ -23,11 +23,11 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
   public function __construct() {
     parent::__construct();
 
-    if ($this->site_group == NULL) {
+    if ($this->site_group == NULL && !empty($_ENV['AH_SITE_GROUP'])) {
       $this->site_group = $_ENV['AH_SITE_GROUP'];
     }
 
-    if ($this->site_env == NULL) {
+    if ($this->site_env == NULL && !empty($_ENV['AH_SITE_ENVIRONMENT'])) {
       $this->site_env = $_ENV['AH_SITE_ENVIRONMENT'];
     }
   }
