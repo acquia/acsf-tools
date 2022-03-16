@@ -6,6 +6,7 @@ rest_factories:
   test: ''
   prod: ''
 subdomain_pattern: '{subdomain}-{env}'
+root_domain: ''
 prod_web: ''
 dev_web: ''
 email_logs_from: ''
