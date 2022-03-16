@@ -19,7 +19,7 @@ class AcsfToolsContentStagingDeployCommands extends AcsfToolsUtils {
    *
    * @command acsf-tools:content-staging-deploy
    *
-   * @bootstrap full
+   * @bootstrap none
    * @param $env
    *   The target environment you are staging content to.
    * @param $sites
