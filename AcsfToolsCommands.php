@@ -130,8 +130,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   A quoted space delimited set of options to pass to your drush command.
    * @option domain-pattern
    *   Pattern / keyword to check for choosing the domain for uri parameter.
-   * @option profiles
-   *   Target sites with specific profiles. Comma list.
    * @option delay
    *   Number of seconds to delay to run command between each site.
    * @option total-time-limit
@@ -156,7 +154,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @aliases sfml,acsf-tools-ml
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'profiles' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
+  public function ml($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
     $command_args = $this->getCommandArgs($command_args);
 
     $drush_command_options = $this->getCommandOptions($command_options);
@@ -169,11 +167,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
-      if (!empty($options['profiles'])) {
-        $profiles = explode(',', $options['profiles']);
-        unset($options['profiles']);
-      }
-
       $i = 0;
       $delay = $options['delay'];
       $total_time_limit = $options['total-time-limit'];
@@ -183,7 +176,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         foreach ($sites as $delta => $details) {
           $domain = $this->getDomain($details, $options);
 
-          $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options, $profiles ?? []);
+          $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
           if (empty($process)) {
             continue;
           }
@@ -238,8 +231,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   A quoted space delimited set of options to pass to your drush command.
    * @option domain-pattern
    *   Pattern / keyword to check for choosing the domain for uri parameter.
-   * @option profiles
-   *   Target sites with specific profiles. Comma list.
    * @option use-https
    *   Use secure urls for drush commands.
    * @usage drush acsf-tools-mlc st
@@ -260,7 +251,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @aliases sfmlc,acsf-tools-mlc
    */
-  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'profiles' => '', 'use-https' => 0]) {
+  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'use-https' => 0]) {
     // Look for list of sites and loop over it.
     $sites = $this->getSites();
     if (empty($sites)) {
@@ -278,17 +269,11 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $drush_command_options['no'] = TRUE;
     }
 
-    $profiles = [];
-    if (!empty($options['profiles'])) {
-      $profiles = explode(',', $options['profiles']);
-      unset($options['profiles']);
-    }
-
     $processes = [];
 
     foreach ($sites as $delta => $details) {
       $domain = $this->getDomain($details, $options);
-      $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options, $profiles);
+      $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
       if (empty($process)) {
         continue;
       }
@@ -421,28 +406,15 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Drush command arguments.
    * @param array $drush_command_options
    *   Drush command options.
-   * @param array $profiles
-   *   Profiles to process the command for.
    *
    * @return \Symfony\Component\Process\Process|null
    *   Process object if site available for processing.
    */
-  protected function prepareCommand(string $domain, array $details, string $cmd, array $command_args, array $drush_command_options, array $profiles) {
+  protected function prepareCommand(string $domain, array $details, string $cmd, array $command_args, array $drush_command_options) {
     if (!$this->isSiteAvailable($details)) {
       $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
       return NULL;
     };
-
-    $site_settings_filepath = 'sites/g/files/' . $details['name'] . '/settings.php';
-    if (!empty($profiles) && file_exists($site_settings_filepath)) {
-      $site_settings = @file_get_contents($site_settings_filepath);
-      if (preg_match("/'install_profile'] = '([a-zA-Z_]*)'/", $site_settings, $matches)) {
-        if (isset($matches[1]) && !in_array($matches[1], $profiles)) {
-          $this->output()->writeln("\n=> Skipping command on $domain as installation profile does not match");
-          return NULL;
-        }
-      }
-    }
 
     $drush_command_options['uri'] = $domain;
 
