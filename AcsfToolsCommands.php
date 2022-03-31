@@ -233,6 +233,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Pattern / keyword to check for choosing the domain for uri parameter.
    * @option use-https
    *   Use secure urls for drush commands.
+   * @option concurrency-limit
+   *   The maximum number of commands to run in parallel. 0 for no limit.
    * @usage drush acsf-tools-mlc st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-mlc cget "'system.site' 'mail'"
@@ -249,9 +251,11 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Run cron on all sites using domain that contains the pattern "collection" for URI.
    *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
+   * @usage drush acsf-tools-mlc cr --concurrency-limit=5
+   *   Run cache clear on all the sites with a limit of 5 concurrent commands.
    * @aliases sfmlc,acsf-tools-mlc
    */
-  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'use-https' => 0]) {
+  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'use-https' => 0, 'concurrency-limit' => 0]) {
     // Look for list of sites and loop over it.
     $sites = $this->getSites();
     if (empty($sites)) {
@@ -271,7 +275,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     $processes = [];
 
-    foreach ($sites as $delta => $details) {
+    foreach ($sites as $details) {
       $domain = $this->getDomain($details, $options);
       $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
       if (empty($process)) {
@@ -279,28 +283,35 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       }
 
       $processes[$domain] = $process;
-      $this->output()->writeln("\n=> Executing command on $domain");
-      $process->start();
     }
 
-    // Wait while commands are finished and log output.
-    while (!empty($processes)) {
-      foreach ($processes as $domain => $process) {
-        if (!$process->isTerminated()) {
-          continue;
-        }
+    $processes_chunks = intval($options['concurrency-limit']) ? array_chunk($processes, intval($options['concurrency-limit']), TRUE) : [$processes];
 
-        // Remove from array now.
-        unset($processes[$domain]);
+    foreach ($processes_chunks as $processes_chunk) {
+      foreach ($processes_chunk as $domain => $process) {
+        $this->output()->writeln("\n=> Executing command on $domain");
+        $process->start();
+      }
 
-        if ($process->isSuccessful()) {
-          $this->output()->writeln("\n=> The command executed successfully for the site $domain.");
-          $this->output()->writeln($process->getOutput());
-          $this->output()->writeln($process->getErrorOutput());
-        }
-        else {
-          $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
-          $this->output()->writeln($process->getErrorOutput());
+      // Wait while commands are finished and log output.
+      while (!empty($processes_chunk)) {
+        foreach ($processes_chunk as $domain => $process) {
+          if (!$process->isTerminated()) {
+            continue;
+          }
+
+          // Remove from array now.
+          unset($processes_chunk[$domain]);
+
+          if ($process->isSuccessful()) {
+            $this->output()->writeln("\n=> The command executed successfully for the site $domain.");
+            $this->output()->writeln($process->getOutput());
+            $this->output()->writeln($process->getErrorOutput());
+          }
+          else {
+            $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
+            $this->output()->writeln($process->getErrorOutput());
+          }
         }
       }
     }
