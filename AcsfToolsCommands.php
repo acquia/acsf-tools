@@ -207,7 +207,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           }
 
           // Delay in running the command for next site.
-          if ($delay > 0 && ($name !== array_key_last($sites) || $total_time_limit)) {
+          if ($delay > 0 && ($name !== array_key_last($sites) || ($total_time_limit && time() < $end))) {
             $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
             sleep($delay);
           }
