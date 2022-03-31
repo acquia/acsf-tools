@@ -148,7 +148,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Run cache clear on all sites with delay of 10 seconds between each site.
    * @usage drush acsf-tools-ml cron --use-https=1
    *   Run cron on all sites using secure url for URI.
-   * @usage drush acsf-tools-ml cron --pattern=collection
+   * @usage drush acsf-tools-ml cron --domain-pattern=collection
    *   Run cron on all sites using domain that contains the pattern "collection" for URI.
    *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
@@ -241,11 +241,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Update user password.
    * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
    *   Fetch config value in JSON format.
-   * @usage drush acsf-tools-mlc cr --delay=10
-   *   Run cache clear on all sites with delay of 10 seconds between each site.
    * @usage drush acsf-tools-mlc cron --use-https=1
    *   Run cron on all sites using secure url for URI.
-   * @usage drush acsf-tools-mlc cron --pattern=collection
+   * @usage drush acsf-tools-mlc cron --domain-pattern=collection
    *   Run cron on all sites using domain that contains the pattern "collection" for URI.
    *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
