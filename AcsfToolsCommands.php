@@ -315,8 +315,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         }
       }
     }
-
-
   }
 
   /**
