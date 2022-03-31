@@ -167,13 +167,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
-      $i = 0;
       $delay = $options['delay'];
       $total_time_limit = $options['total-time-limit'];
       $end = time() + $total_time_limit;
 
       do {
-        foreach ($sites as $delta => $details) {
+        foreach ($sites as $name => $details) {
           $domain = $this->getDomain($details, $options);
 
           $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
@@ -208,7 +207,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           }
 
           // Delay in running the command for next site.
-          if ($delay > 0 && $i < (count($sites) - 1)) {
+          if ($delay > 0 && ($name !== array_key_last($sites) || ($total_time_limit && time() < $end))) {
             $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
             sleep($delay);
           }
