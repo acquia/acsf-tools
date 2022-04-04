@@ -218,6 +218,13 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       }
     }
 
+    // Avoid warning due to inconsistent parameters.
+    if ($options['format'] === self::FORMAT_PROGRESS) {
+      $options['filter'] = NULL;
+      $options['field'] = NULL;
+      $options['fields'] = NULL;
+    }
+
     // Prepare the arguments and options of the drush command that will get
     // executed on the sites.
     $drush_command_args = $this->getCommandArgs($command_args);
@@ -303,7 +310,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $loop++;
     } while ($total_time_limit && time() < $end && !empty($sites));
 
-    return $options['format'] === self::FORMAT_PROGRESS ? NULL : new RowsOfFields($rows);
+    return $options['format'] === self::FORMAT_PROGRESS ? new RowsOfFields([]) : new RowsOfFields($rows);
   }
 
   /**
@@ -375,6 +382,13 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       }
 
       return;
+    }
+
+    // Avoid warning due to inconsistent parameters.
+    if ($options['format'] === self::FORMAT_PROGRESS) {
+      $options['filter'] = NULL;
+      $options['field'] = NULL;
+      $options['fields'] = NULL;
     }
 
     // Prepare the arguments and options of the drush command that will get
@@ -451,7 +465,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       }
     }
 
-    return $options['format'] === self::FORMAT_PROGRESS ? NULL : new RowsOfFields(array_values($rows));
+    return $options['format'] === self::FORMAT_PROGRESS ? new RowsOfFields([]) : new RowsOfFields(array_values($rows));
   }
 
   /**
