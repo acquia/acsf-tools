@@ -6,6 +6,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drush\Drush;
 use Drush\Exceptions\UserAbortException;
 use Consolidation\SiteAlias\SiteAliasManagerAwareInterface;
@@ -17,6 +18,38 @@ use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
 class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareInterface {
 
   use SiteAliasManagerAwareTrait;
+
+  /**
+   * @var int
+   */
+  const SITE_NOT_READY = 1;
+
+  /**
+   * @var string
+   */
+  const FORMAT_PROGRESS = 'progress';
+
+  /**
+   * @var string
+   */
+  const FORMAT_CSV = 'csv';
+
+  const FORMAT_TABLE = 'table';
+
+  /**
+   * @var string
+   */
+  const STATUS_SKIP = 'skipped';
+
+  /**
+   * @var string
+   */
+  const STATUS_ERROR = 'error';
+
+  /**
+   * @var string
+   */
+  const STATUS_SUCCESS = 'success';
 
   /**
    * List the sites of the factory.
@@ -121,13 +154,17 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:ml
    *
+   * @aliases sfml,acsf-tools-ml
+   *
    * @bootstrap site
+   *
    * @params $cmd
    *   The drush command you want to run against all sites in your factory.
    * @params $command_args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
    * @params $command_options Optional.
    *   A quoted space delimited set of options to pass to your drush command.
+   *
    * @option domain-pattern
    *   Pattern / keyword to check for choosing the domain for uri parameter.
    * @option delay
@@ -136,6 +173,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.
    * @option use-https
    *   Use secure urls for drush commands.
+   *
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
@@ -152,11 +190,44 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Run cron on all sites using domain that contains the pattern "collection" for URI.
    *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
-   * @aliases sfml,acsf-tools-ml
+   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=string'" --fields=name,domain,result --filter='result~=#(admin)#i' --format=table
+   *   Create a table with the name, domain and system.site.mail config value of the sites which
+   *   the config value contains "admin".
+   *
+   * @table-style default
+   *
+   * @field-labels
+   *   status: Command status
+   *   result: Command result
+   *   domain: Domain
+   *   db_name: DB name
+   *   name: Site name
+   *   site_id: Site ID
+   *   execution: Execution #
+   * @default-fields name,result
+   *
+   * @filter-default-field result
+   *
+   * @return RowsOfFields
    */
-  public function ml($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'delay' => 0, 'total-time-limit' => 0, 'use-https' => 0]) {
-    $command_args = $this->getCommandArgs($command_args);
+  public function ml($cmd, $command_args = '', $command_options = '', $options = [
+    'domain-pattern' => '',
+    'delay' => 0,
+    'total-time-limit' => 0,
+    'use-https' => 0,
+    'format' => self::FORMAT_PROGRESS,
+  ]) {
+    // Exit early if there is no sites.
+    $sites = $this->getSites();
+    if (!$sites || empty($sites)) {
+      if ($options['format'] === self::FORMAT_PROGRESS) {
+        $this->output()->writeln('Impossible to fetch the list of sites.');
+      }
+    }
 
+    // Prepare the arguments and options of the drush command that will get
+    // executed on the sites.
+    $drush_command_args = $this->getCommandArgs($command_args);
     $drush_command_options = $this->getCommandOptions($command_options);
 
     // Command always passes the default option as `yes` irrespective if `--no`
@@ -165,35 +236,52 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $drush_command_options['no'] = TRUE;
     }
 
-    // Look for list of sites and loop over it.
-    if ($sites = $this->getSites()) {
-      $delay = $options['delay'];
-      $total_time_limit = $options['total-time-limit'];
-      $end = time() + $total_time_limit;
+    $delay = $options['delay'];
+    $total_time_limit = $options['total-time-limit'];
+    $end = time() + $total_time_limit;
+    $rows = [];
+    $loop = 0;
 
-      do {
-        foreach ($sites as $name => $details) {
-          $domain = $this->getDomain($details, $options);
+    do {
+      foreach ($sites as $name => $details) {
+        // Determine the domain to use for the --uri option.
+        $domain = $this->getDomain($details, $options);
 
-          $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
-          if (empty($process)) {
-            continue;
+        $row = [
+          'status' => NULL,
+          'result' => NULL,
+          'domain' => $domain,
+          'db_name' => $name,
+          'name' => $details['machine_name'],
+          'site_id' => $details['conf']['gardens_site_id'],
+          'execution' => $loop + 1,
+        ];
+
+        $process = $this->prepareCommand($domain, $details, $cmd, $drush_command_args, $drush_command_options);
+        if ($process === self::SITE_NOT_READY) {
+          $row['status'] = self::STATUS_SKIP;
+
+          if ($options['format'] === self::FORMAT_PROGRESS) {
+            $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
           }
+          continue;
+        }
 
+        if ($options['format'] === self::FORMAT_PROGRESS) {
           $this->output()->writeln("\n=> Running command on $domain");
+        }
 
-          $is_command_success = TRUE;
-          try {
-            $process->mustRun();
-          }
-          catch (\Exception $e) {
-            $is_command_success = FALSE;
-          }
+        $is_command_success = TRUE;
+        try {
+          $process->mustRun();
+        }
+        catch (\Exception $e) {
+          $is_command_success = FALSE;
+        }
 
+        if ($options['format'] === self::FORMAT_PROGRESS) {
           if (!$is_command_success || !$process->isSuccessful()) {
             $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
-            $this->output()->writeln($process->getErrorOutput());
-            continue;
           }
 
           // Print the output. Some commands (such as updb) are logging
@@ -205,15 +293,24 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           if (!empty($process->getErrorOutput())) {
             $this->output()->writeln($process->getErrorOutput());
           }
-
-          // Delay in running the command for next site.
-          if ($delay > 0 && ($name !== array_key_last($sites) || ($total_time_limit && time() < $end))) {
-            $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
-            sleep($delay);
-          }
         }
-      } while ($total_time_limit && time() < $end && !empty($sites));
-    }
+
+        $row['status'] = (!$is_command_success || !$process->isSuccessful()) ? self::STATUS_ERROR : self::STATUS_SUCCESS;
+        $row['result'] = trim(rtrim($process->getOutput())) . trim(rtrim($process->getErrorOutput()));
+        $rows[] = $row;
+
+        // Delay in running the command for next site.
+        if ($delay > 0 && ($name !== array_key_last($sites) || ($total_time_limit && time() < $end))) {
+          if ($options['format'] === self::FORMAT_PROGRESS) {
+            $this->output()->writeln("\n=> Sleeping for $delay seconds before running command on next site.");
+          }
+          sleep($delay);
+        }
+      }
+      $loop++;
+    } while ($total_time_limit && time() < $end && !empty($sites));
+
+    return $options['format'] === self::FORMAT_PROGRESS ? NULL : new RowsOfFields($rows);
   }
 
   /**
@@ -221,19 +318,24 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:mlc
    *
+   * @aliases sfmlc,acsf-tools-mlc
+   *
    * @bootstrap site
+   *
    * @params $cmd
    *   The drush command you want to run against all sites in your factory.
    * @params $command_args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
    * @params $command_options Optional.
    *   A quoted space delimited set of options to pass to your drush command.
+   *
    * @option domain-pattern
    *   Pattern / keyword to check for choosing the domain for uri parameter.
    * @option use-https
    *   Use secure urls for drush commands.
    * @option concurrency-limit
    *   The maximum number of commands to run in parallel. 0 for no limit.
+   *
    * @usage drush acsf-tools-mlc st
    *   Get output of `drush status` for all the sites.
    * @usage drush acsf-tools-mlc cget "'system.site' 'mail'"
@@ -250,18 +352,41 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @usage drush acsf-tools-mlc cr --concurrency-limit=5
    *   Run cache clear on all the sites with a limit of 5 concurrent commands.
-   * @aliases sfmlc,acsf-tools-mlc
+   *
+   * @table-style default
+   *
+   * @field-labels
+   *   status: Command status
+   *   result: Command result
+   *   domain: Domain
+   *   db_name: DB name
+   *   name: Site name
+   *   site_id: Site ID
+   * @default-fields name,result
+   *
+   * @filter-default-field result
+   *
+   * @return RowsOfFields
    */
-  public function mlc($cmd, $command_args = '', $command_options = '', $options = ['domain-pattern' => '', 'use-https' => 0, 'concurrency-limit' => 0]) {
-    // Look for list of sites and loop over it.
+  public function mlc($cmd, $command_args = '', $command_options = '', $options = [
+    'domain-pattern' => '',
+    'use-https' => 0,
+    'concurrency-limit' => 0,
+    'format' => self::FORMAT_PROGRESS,
+  ]) {
+    // Exit early if there is no sites.
     $sites = $this->getSites();
-    if (empty($sites)) {
+    if (!$sites || empty($sites)) {
+      if ($options['format'] === self::FORMAT_PROGRESS) {
+        $this->output()->writeln('Impossible to fetch the list of sites.');
+      }
+
       return;
     }
 
-    $command_args = $this->getCommandArgs($command_args);
-
-    // Parse list of options to be passed to the drush sub-command being invoked.
+    // Prepare the arguments and options of the drush command that will get
+    // executed on the sites.
+    $drush_command_args = $this->getCommandArgs($command_args);
     $drush_command_options = $this->getCommandOptions($command_options);
 
     // Command always passes the default option as `yes` irrespective if `--no`
@@ -271,47 +396,69 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     }
 
     $processes = [];
+    $rows = [];
 
-    foreach ($sites as $details) {
-      $domain = $this->getDomain($details, $options);
-      $process = $this->prepareCommand($domain, $details, $cmd, $command_args, $drush_command_options);
-      if (empty($process)) {
+    // Prepare the commands to execute on the sites.
+    foreach ($sites as $key => $details) {
+      // Determine the domain to use for the --uri option.
+      $sites[$key]['domain'] = $this->getDomain($details, $options);
+
+      $rows[$key] = [
+        'status' => NULL,
+        'result' => NULL,
+        'domain' => $sites[$key]['domain'],
+        'db_name' => $key,
+        'name' => $details['machine_name'],
+        'site_id' => $details['conf']['gardens_site_id'],
+      ];
+
+      $process = $this->prepareCommand($sites[$key]['domain'], $details, $cmd, $drush_command_args, $drush_command_options);
+      if ($process === self::SITE_NOT_READY) {
+        $rows[$key]['status'] = self::STATUS_SKIP;
         continue;
       }
 
-      $processes[$domain] = $process;
+      $processes[$key] = $process;
     }
 
     $processes_chunks = intval($options['concurrency-limit']) ? array_chunk($processes, intval($options['concurrency-limit']), TRUE) : [$processes];
 
     foreach ($processes_chunks as $processes_chunk) {
-      foreach ($processes_chunk as $domain => $process) {
-        $this->output()->writeln("\n=> Executing command on $domain");
+      foreach ($processes_chunk as $key => $process) {
+        if ($options['format'] === self::FORMAT_PROGRESS) {
+          $this->output()->writeln('\n=> Executing command on ' . $sites[$key]['domain']);
+        }
         $process->start();
       }
 
       // Wait while commands are finished and log output.
       while (!empty($processes_chunk)) {
-        foreach ($processes_chunk as $domain => $process) {
+        foreach ($processes_chunk as $key => $process) {
           if (!$process->isTerminated()) {
             continue;
           }
 
           // Remove from array now.
-          unset($processes_chunk[$domain]);
+          unset($processes_chunk[$key]);
 
-          if ($process->isSuccessful()) {
-            $this->output()->writeln("\n=> The command executed successfully for the site $domain.");
-            $this->output()->writeln($process->getOutput());
-            $this->output()->writeln($process->getErrorOutput());
-          }
-          else {
-            $this->output()->writeln("\n=> The command failed to execute for the site $domain.");
-            $this->output()->writeln($process->getErrorOutput());
+          $rows[$key]['status'] = !$process->isSuccessful() ? self::STATUS_ERROR : self::STATUS_SUCCESS;
+          $rows[$key]['result'] = trim(rtrim($process->getOutput())) . trim(rtrim($process->getErrorOutput()));
+
+          if ($options['format'] === self::FORMAT_PROGRESS) {
+            if ($process->isSuccessful()) {
+              $this->output()->writeln("\n=> The command executed successfully for the site " . $sites[$key]['domain'] . '.');
+              $this->output()->writeln($process->getOutput());
+              $this->output()->writeln($process->getErrorOutput());
+            } else {
+              $this->output()->writeln("\n=> The command failed to execute for the site " . $sites[$key]['domain'] . '.');
+              $this->output()->writeln($process->getErrorOutput());
+            }
           }
         }
       }
     }
+
+    return $options['format'] === self::FORMAT_PROGRESS ? NULL : new RowsOfFields(array_values($rows));
   }
 
   /**
@@ -410,24 +557,23 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   ACSF Site details.
    * @param string $cmd
    *   Drush command.
-   * @param array $command_args
+   * @param array $drush_command_args
    *   Drush command arguments.
    * @param array $drush_command_options
    *   Drush command options.
    *
-   * @return \Symfony\Component\Process\Process|null
+   * @return \Symfony\Component\Process\Process|int
    *   Process object if site available for processing.
    */
-  protected function prepareCommand(string $domain, array $details, string $cmd, array $command_args, array $drush_command_options) {
+  protected function prepareCommand(string $domain, array $details, string $cmd, array $drush_command_args, array $drush_command_options) {
     if (!$this->isSiteAvailable($details)) {
-      $this->output()->writeln("\n=> Skipping command on $domain as site is not ready yet");
-      return NULL;
+      return self::SITE_NOT_READY;
     };
 
     $drush_command_options['uri'] = $domain;
 
     $self = $this->siteAliasManager()->getSelf();
-    return Drush::drush($self, $cmd, $command_args, $drush_command_options);
+    return Drush::drush($self, $cmd, $drush_command_args, $drush_command_options);
 
   }
 
