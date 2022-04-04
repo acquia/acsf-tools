@@ -32,13 +32,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * @var string
    */
-  const FORMAT_CSV = 'csv';
-
-  const FORMAT_TABLE = 'table';
-
-  /**
-   * @var string
-   */
   const STATUS_SKIP = 'skipped';
 
   /**
