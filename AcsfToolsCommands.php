@@ -216,6 +216,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       if ($options['format'] === self::FORMAT_PROGRESS) {
         $this->output()->writeln('Impossible to fetch the list of sites.');
       }
+
+      return;
     }
 
     // Avoid warning due to inconsistent parameters.
