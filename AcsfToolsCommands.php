@@ -6,6 +6,8 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use Consolidation\Filter\FilterOutputData;
+use Consolidation\Filter\LogicalOpFactory;
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
 use Drush\Drush;
 use Drush\Exceptions\UserAbortException;
@@ -166,6 +168,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.
    * @option use-https
    *   Use secure urls for drush commands.
+   * @option sites-filter
+   *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
+   *   name, site_id, db_name, domain [default: name]
    *
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
@@ -184,8 +189,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=string'" --fields=name,domain,result --filter='result~=#(admin)#i' --format=table
-   *   Create a table with the name, domain and system.site.mail config value of the sites which
+   *   Display a table with the name, domain and system.site.mail config value of the sites which
    *   the config value contains "admin".
+   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
+   *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
    *
    * @table-style default
    *
@@ -209,6 +216,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'total-time-limit' => 0,
     'use-https' => 0,
     'format' => self::FORMAT_PROGRESS,
+    'sites-filter' => self::REQ,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
@@ -226,6 +234,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $options['field'] = NULL;
       $options['fields'] = NULL;
     }
+
+    // Filter the sites which the command will be executed on.
+    $sites = $this->filterSites($sites, $options['sites-filter']);
 
     // Prepare the arguments and options of the drush command that will get
     // executed on the sites.
@@ -337,6 +348,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Use secure urls for drush commands.
    * @option concurrency-limit
    *   The maximum number of commands to run in parallel. 0 for no limit.
+   * @option sites-filter
+   *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
+   *   name, site_id, db_name, domain [default: name]
    *
    * @usage drush acsf-tools-mlc st
    *   Get output of `drush status` for all the sites.
@@ -354,6 +368,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
    * @usage drush acsf-tools-mlc cr --concurrency-limit=5
    *   Run cache clear on all the sites with a limit of 5 concurrent commands.
+   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
+   *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
    *
    * @table-style default
    *
@@ -375,6 +391,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'use-https' => 0,
     'concurrency-limit' => 0,
     'format' => self::FORMAT_PROGRESS,
+    'sites-filter' => self::REQ,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
@@ -392,6 +409,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $options['field'] = NULL;
       $options['fields'] = NULL;
     }
+
+    // Filter the sites which the command will be executed on.
+    $sites = $this->filterSites($sites, $options['sites-filter']);
 
     // Prepare the arguments and options of the drush command that will get
     // executed on the sites.
@@ -583,7 +603,47 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     $self = $this->siteAliasManager()->getSelf();
     return Drush::drush($self, $cmd, $drush_command_args, $drush_command_options);
+  }
 
+  /**
+   * Utility method to filter the sites using Consolidation\Filter.
+   *
+   * @param array $sites
+   *   The list of sites to filter.
+   * @param string|null $filter
+   *   The filter string to apply.
+   *
+   * @return array
+   *   The filtered list of sites.
+   */
+  protected function filterSites(array $sites, string $filter = NULL) {
+    if (empty($filter)) {
+      return $sites;
+    }
+
+    // Prepare a temporary variable with the sites's data which we can use
+    // with Consolidation\Filter package.
+    $s = [];
+    foreach ($sites as $site) {
+      foreach ($site['domains'] as $domain) {
+        $s[] = [
+          'name' => $site['machine_name'],
+          'site_id' => $site['conf']['gardens_site_id'],
+          'db_name' => $site['conf']['gardens_db_name'],
+          'domain' => $domain,
+        ];
+      }
+    }
+
+    // Filter the temporary variable to keep only expected sites.
+    $factory = LogicalOpFactory::get();
+    $op = $factory->evaluate($filter, 'machine_name');
+    $filter = new FilterOutputData();
+    $s = $filter->filter($s, $op);
+
+    // Filter the initial $sites variable based on the filtered temporary
+    // variable.
+    return array_intersect_key($sites, array_fill_keys(array_column($s, 'db_name'), true));
   }
 
   /**
