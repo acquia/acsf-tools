@@ -6,11 +6,30 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use Drush\Drush;
 use Symfony\Component\Yaml\Yaml;
 use Drush\Commands\DrushCommands;
 use Drush\Exceptions\UserAbortException;
 
 class AcsfToolsUtils extends DrushCommands {
+
+  /**
+   * Utility function to compute the path to the local copy of the sites.json.
+   *
+   * @return false|string
+   */
+  public function getLocalSitesJsonFilepath() {
+    $filepath = FALSE;
+
+    if ($this->aliasRecord && !$this->aliasRecord->isLocal()) {
+      $alias_name = str_replace('@', '', $this->aliasRecord->name());
+      $home = $this->getConfig()->home();
+
+      $filepath = $home . '/.drush/' . $alias_name . '.sites.json';
+    }
+
+    return $filepath;
+  }
 
 	/**
    * Utility function to retrieve the list of sites in a given Factory.
@@ -20,13 +39,38 @@ class AcsfToolsUtils extends DrushCommands {
   public function getSites() {
     $sites = FALSE;
 
-    // Don't run locally.
-    if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
-      return FALSE;
+    // Exit early if the command is executed outside an ACSF server and no
+    // alias is provided.
+    if ($this->aliasRecord && $this->aliasRecord->isLocal() && !$this->checkAcsfFunction('gardens_site_data_load_file')) {
+      return $sites;
+    }
+
+    $map = FALSE;
+    if ($this->checkAcsfFunction('gardens_site_data_load_file')) {
+      $map = gardens_site_data_load_file();
+    }
+    elseif ($this->aliasRecord && !$this->aliasRecord->isLocal() && $sites_json_filepath = $this->getLocalSitesJsonFilepath()) {
+      $alias_name = str_replace('@', '', $this->aliasRecord->name());
+
+      // Download the remote ACSF sites.json so we can process it locally.
+      if (!file_exists($sites_json_filepath)) {
+        $self = $this->siteAliasManager()->getSelf();
+        $process = Drush::drush($self, 'rsync', [$this->aliasRecord->name() . ':/mnt/files/' . $alias_name . '/files-private/sites.json',  $sites_json_filepath, '-y']);
+
+        try {
+          $process->mustRun();
+        }
+        catch (\Exception $e) {
+          return FALSE;
+        }
+      }
+
+      $json = @file_get_contents($sites_json_filepath);
+      $map = $json ? json_decode($json, TRUE) : FALSE;
     }
 
     // Look for list of sites and loop over it.
-    if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
+    if ($map && isset($map['sites'])) {
       // Acquire sites info.
       $sites = array();
       foreach ($map['sites'] as $domain => $site_details) {
@@ -68,7 +112,9 @@ class AcsfToolsUtils extends DrushCommands {
   /**
    * Utility function to prompt the user for confirmation they want to run a
    * command against all sites in their Factory.
+   *
    * @return bool
+   * @throws UserAbortException
    */
   public function promptConfirm() {
 
@@ -194,10 +240,7 @@ class AcsfToolsUtils extends DrushCommands {
    * locally, or remotely in ACSF.
    */
   public function checkAcsfFunction($function_name = '') {
-
     if (!function_exists($function_name)) {
-      $error = "This command cannot be run locally, please run with a valid ACSF alias.";
-      $this->logger()->error(dt($error));
       return FALSE;
     }
     return TRUE;
