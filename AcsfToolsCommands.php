@@ -6,6 +6,7 @@
 
 namespace Drush\Commands\acsf_tools;
 
+use Consolidation\AnnotatedCommand\CommandData;
 use Consolidation\Filter\FilterOutputData;
 use Consolidation\Filter\LogicalOpFactory;
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
@@ -29,7 +30,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * @var string
    */
-  const FORMAT_PROGRESS = 'progress';
+  const FORMAT_PROGRESS = 'string';
 
   /**
    * @var string
@@ -51,22 +52,39 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:list
    *
+   * @aliases sfl,acsf-tools-list
+   *
+   * @acsf-tools-alias
+   *
    * @bootstrap site
+   *
    * @param array $options An associative array of options whose values come
    *   from cli, aliases, config, etc.
+   *
    * @option fields
    *   The list of fields to display (comma separated list).
+   * @option alias
+   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
+   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
+   * @option alias-refresh
+   *   Force the refresh of the local of the sites.json for the given alias.
+   *
    * @usage drush acsf-tools-list
    *   Get all details for all the sites of the factory.
    * @usage drush acsf-tools-list --fields
    *   Get prefix for all the sites of the factory.
    * @usage drush acsf-tools-list --fields=name,domains
    *   Get prefix, name and domains for all the sites of the factory.
+   * @usage drush acsf-tools-list --alias=sub.env
+   *   Download the sites.json file from the given alias before computing the result.
+   *   If you want to run the command on the servers, use the alias as usual: drush @sub.env acsf-tools-list.
    *
-   * @aliases sfl,acsf-tools-list
    */
-  public function sitesList(array $options = ['fields' => null]) {
-
+  public function sitesList(array $options = [
+    'fields' => null,
+    'alias' => self::REQ,
+    'alias-refresh' => false,
+  ]) {
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
       // Render the info.
@@ -96,14 +114,14 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:info
    *
+   * @aliases sfi,acsf-tools-info
+   *
    * @bootstrap site
+   *
    * @usage drush acsf-tools-info
    *   Get more details for all the sites of the factory.
-   *
-   * @aliases sfi,acsf-tools-info
    */
   public function sitesInfo() {
-
     // Don't run locally.
     if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
       return FALSE;
@@ -151,6 +169,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @aliases sfml,acsf-tools-ml
    *
+   * @acsf-tools-alias
+   *
    * @bootstrap site
    *
    * @params $cmd
@@ -171,6 +191,11 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @option sites-filter
    *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
    *   name, site_id, db_name, domain [default: name]
+   * @option alias
+   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
+   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
+   * @option alias-refresh
+   *   Force the refresh of the local of the sites.json for the given alias.
    *
    * @usage drush acsf-tools-ml st
    *   Get output of `drush status` for all the sites.
@@ -193,6 +218,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   the config value contains "admin".
    * @usage drush acsf-tools-ml cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
    *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
+   * @usage drush acsf-tools-ml status --alias=sub.env
+   *   Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands.
+   *   If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools-ml status.
    *
    * @table-style default
    *
@@ -217,12 +245,14 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'use-https' => 0,
     'format' => self::FORMAT_PROGRESS,
     'sites-filter' => self::REQ,
+    'alias' => self::REQ,
+    'alias-refresh' => false,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
     if (!$sites || empty($sites)) {
       if ($options['format'] === self::FORMAT_PROGRESS) {
-        $this->output()->writeln('Impossible to fetch the list of sites.');
+        $this->logger()->error('Impossible to fetch the list of sites. If you are not on an ACSF instance, use the --alias option.');
       }
 
       return;
@@ -333,6 +363,8 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @aliases sfmlc,acsf-tools-mlc
    *
+   * @acsf-tools-alias
+   *
    * @bootstrap site
    *
    * @params $cmd
@@ -351,6 +383,11 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @option sites-filter
    *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
    *   name, site_id, db_name, domain [default: name]
+   * @option alias
+   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
+   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
+   * @option alias-refresh
+   *   Force the refresh of the local of the sites.json for the given alias.
    *
    * @usage drush acsf-tools-mlc st
    *   Get output of `drush status` for all the sites.
@@ -370,6 +407,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Run cache clear on all the sites with a limit of 5 concurrent commands.
    * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
    *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
+   * @usage drush acsf-tools-ml status --alias=sub.env
+   *   Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands.
+   *   If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools-ml status.
    *
    * @table-style default
    *
@@ -392,12 +432,14 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'concurrency-limit' => 0,
     'format' => self::FORMAT_PROGRESS,
     'sites-filter' => self::REQ,
+    'alias' => self::REQ,
+    'alias-refresh' => false,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
     if (!$sites || empty($sites)) {
       if ($options['format'] === self::FORMAT_PROGRESS) {
-        $this->output()->writeln('Impossible to fetch the list of sites.');
+        $this->logger()->error('Impossible to fetch the list of sites. If you are not on an ACSF instance, use the --alias option.');
       }
 
       return;
@@ -578,6 +620,52 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   }
 
   /**
+   * Validate the options related to alias management.
+   *
+   * @hook validate @acsf-tools-alias
+   *
+   * @throws \Exception
+   */
+  public function aliasValidate(CommandData $commandData) {
+    // Validate the given alias is known alias.
+    $alias = $commandData->input()->getOption('alias');
+    if ($alias && !$this->siteAliasManager()->getAlias($alias)) {
+      throw new \Exception(dt('The alias !alias is not a valid drush alias. Use `drush site:alias` to list all alias records known to drush.', ['!alias' => $alias]));
+    }
+
+    // Avoid using --alias-refresh option without --alias option.
+    $alias_refresh = $commandData->input()->getOption('alias-refresh');
+    if (!$alias && $alias_refresh) {
+      throw new \Exception('The option --alias-refresh cannot be used without --alias option.');
+    }
+  }
+
+  /**
+   * Prepare the alias if given to the command.
+   *
+   * @hook pre-command @acsf-tools-alias
+   */
+  public function aliasPrepare(CommandData $commandData) {
+    // Default to local alias.
+    $this->aliasRecord = $this->siteAliasManager()->getSelf();
+
+    // If provided and validated, use the given alias as the default.
+    $alias = $commandData->input()->getOption('alias');
+    if ($alias) {
+      $this->aliasRecord = $this->siteAliasManager()->getAlias($alias);
+    }
+
+    // If requested, delete the local copy of sites.json for the given alias.
+    $alias_refresh = $commandData->input()->getOption('alias-refresh');
+    if ($alias_refresh) {
+      $filepath = $this->getLocalSitesJsonFilepath();
+      if (file_exists($filepath)) {
+        unlink($filepath);
+      }
+    }
+  }
+
+  /**
    * Wrapper function to prepare process if site available for processing.
    *
    * @param string $domain
@@ -601,8 +689,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
     $drush_command_options['uri'] = $domain;
 
-    $self = $this->siteAliasManager()->getSelf();
-    return Drush::drush($self, $cmd, $drush_command_args, $drush_command_options);
+    return Drush::drush($this->aliasRecord, $cmd, $drush_command_args, $drush_command_options);
   }
 
   /**
@@ -651,7 +738,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:dump
    *
+   * @aliases sfdu,acsf-tools-dump
+   *
    * @bootstrap site
+   *
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
    * @option result-folder
    *   The folder in which the backups will be written. Defaults to ~/drush-backups/[YYYYmmdd-hhmm].
@@ -665,7 +755,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
    *   Same as above but using options of sql-dump command.
    *
-   * @aliases sfdu,acsf-tools-dump
+   * @throws UserAbortException
    */
   public function dbDump(array $options = ['result-folder' => NULL, 'gzip' => FALSE]) {
 
@@ -750,8 +840,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    * @command acsf-tools:restore
    *
+   * @aliases sfr,acsf-tools-restore
+   *
    * @bootstrap site
+   *
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
+   *
    * @option source-folder
    *   The folder in which the dumps are stored. Defaults to ~/drush-backups.
    * @option gzip
@@ -764,9 +858,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @usage drush acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip
    *   Restore compressed DB dumps for factory sites that are stored in the specified folder.
    *
-   * @aliases sfr,acsf-tools-restore
-   *
    * @return bool|void
+   *
+   * @throws UserAbortException
    */
   function dbRestore(array $options = ['source-folder' => '~/drush-backups', 'gzip' => FALSE]) {
 
