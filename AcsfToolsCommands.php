@@ -492,25 +492,21 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $processes[$key] = $process;
     }
 
-    $processes_chunks = intval($options['concurrency-limit']) ? array_chunk($processes, intval($options['concurrency-limit']), TRUE) : [$processes];
+    while (!empty($processes)) {
+      $running = 0;
 
-    foreach ($processes_chunks as $processes_chunk) {
-      foreach ($processes_chunk as $key => $process) {
-        if ($options['format'] === self::FORMAT_PROGRESS) {
-          $this->output()->writeln('\n=> Executing command on ' . $sites[$key]['domain']);
+      foreach ($processes as $key => $process) {
+        // If the process is still running, we simply count it and move to the
+        // next one.
+        if ($process->isRunning()) {
+          $running++;
+          continue;
         }
-        $process->start();
-      }
 
-      // Wait while commands are finished and log output.
-      while (!empty($processes_chunk)) {
-        foreach ($processes_chunk as $key => $process) {
-          if (!$process->isTerminated()) {
-            continue;
-          }
-
-          // Remove from array now.
-          unset($processes_chunk[$key]);
+        // If the process is completed, we fetch the result and remove the
+        // process from the queue.
+        if ($process->isTerminated()) {
+          unset($processes[$key]);
 
           $rows[$key]['status'] = !$process->isSuccessful() ? self::STATUS_ERROR : self::STATUS_SUCCESS;
           $rows[$key]['result'] = trim(rtrim($process->getOutput())) . trim(rtrim($process->getErrorOutput()));
@@ -525,6 +521,19 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
               $this->output()->writeln($process->getErrorOutput());
             }
           }
+
+          continue;
+        }
+
+        // If we have not reached the concurrency limit yet and the process has
+        // not started yet, start it.
+        if (!$process->isStarted() && (!intval($options['concurrency-limit']) || $options['concurrency-limit'] > $running)) {
+          if ($options['format'] === self::FORMAT_PROGRESS) {
+            $this->output()->writeln("\n=> Executing command on " . $sites[$key]['domain']);
+          }
+          $process->start();
+
+          $running++;
         }
       }
     }
