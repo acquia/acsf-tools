@@ -99,7 +99,7 @@ actually present in that environment.
 
 #### ACSF Tools
 
-**Note**: The commands in this section are ran remotely on a factory by remote drush alias, and do not require REST API
+**Note**: The commands in this section are run remotely on a factory by remote drush alias, and do not require REST API
 authentication. E.g., `drush @coolsites.01dev sfl` will list all the sites in the development factory for the 'coolsite'
 subscription. This is the one exception to the 'always run local' rule. These commands do require SSH access via drush,
 same as any other drush remote execution script.
