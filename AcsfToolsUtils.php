@@ -21,7 +21,7 @@ class AcsfToolsUtils extends DrushCommands {
   public function getLocalSitesJsonFilepath() {
     $filepath = FALSE;
 
-    if ($this->aliasRecord && !$this->aliasRecord->isLocal()) {
+    if (isset($this->aliasRecord) && !$this->aliasRecord->isLocal()) {
       $alias_name = str_replace('@', '', $this->aliasRecord->name());
       $home = $this->getConfig()->home();
 
@@ -41,7 +41,7 @@ class AcsfToolsUtils extends DrushCommands {
 
     // Exit early if the command is executed outside an ACSF server and no
     // alias is provided.
-    if ($this->aliasRecord && $this->aliasRecord->isLocal() && !$this->checkAcsfFunction('gardens_site_data_load_file')) {
+    if (isset($this->aliasRecord) && $this->aliasRecord->isLocal() && !$this->checkAcsfFunction('gardens_site_data_load_file')) {
       return $sites;
     }
 
