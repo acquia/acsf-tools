@@ -1,5 +1,7 @@
 # ACSF Tools
 
+**This tool is community-supported. Acquia does not provide any direct support for this software or provide any warranty as to its stability.**
+
 ## Summary:
 
 This project contains a set of drush scripts designed to ease administering an Acquia Cloud Site Factory multisite
