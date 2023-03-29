@@ -21,7 +21,7 @@
   "require": {
     "php": ">=8.0",
     "symfony/yaml": "^6.2",
-    "composer/installers": "^1.7",
+    "composer/installers": "^1.0 || ^2.0",
     "ext-zip": "^1.15",
     "phpmailer/phpmailer": "^6.1"
   },
