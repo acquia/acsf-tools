@@ -18,13 +18,13 @@ directory (e.g., [project-root]/drush/Commands).
 
 For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools:9.x-dev`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
 
-_If you upgraded Drush to 10.x then use acsf-tools 10.x, the easiest method is to run `composer remove acquia/acsf-tools` and then `composer require acquia/acsf-tools:10.x-dev`. This will ensure no cruft remains from the 9.x version or earlier versions. Make a backup of your local acsf_tools_config.yml before running `composer remove`._
+_If you upgraded Drush to 11.x then use acsf-tools 11.x, the easiest method is to run `composer remove acquia/acsf-tools` and then `composer require acquia/acsf-tools:11.x-dev`. This will ensure no cruft remains from the 10.x version or earlier versions. Make a backup of your local acsf_tools_config.yml before running `composer remove`._
 
-#### Drush 10 Installs
+#### Drush 11 Installs
 
-Using this branch requires Drush 10. There are some [architectural changes to global commands in Drush 10](http://docs.drush.org/en/master/commands/#global-drush-commands) that you'll want to become familiar with.
+Using this branch requires Drush 11.
 
-_Also, there are some additional manual install steps while some upstream packages ([BLT](https://github.com/acquia/blt/tree/11.x), [Composer-installers](https://github.com/composer/installers)) adapt to Drush 10:_
+_Also, there are some additional manual install steps while some upstream packages ([BLT](https://github.com/acquia/blt/tree/11.x), [Composer-installers](https://github.com/composer/installers)) adapt to Drush 11:_
 
 * In your project's main composer.json, change the 'type:drupal-drush' installer-path from `drush/contrib/{$name}` to `drush/Commands/{$name}`.
 * If your repository incldues a legacy `/drush/contrib` folder, rename it to `drush/Commands`.
@@ -114,8 +114,3 @@ factory.
 output. This is useful for clearing cacheS, or disabling a single module for every site in your factory.
 * __acsf-tools-dump (sfdu):__ This command will create a quick sql backup for all sites in your factory.
 * __acsf-tools-restore (sfr):__ This command will restore sql backups for all sites in your factory.
-
-
-
-
-
