@@ -243,7 +243,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
     }
     else {
       $f = $acsfLogs::START_LOG_MARKER;
-      $v = $this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", "");
+      $v = $this->AcsfExecute("cat {$logsFolder}{$f} 2>/dev/null;", "");
       $results[] = [
         'name' => 'Background task started',
         'value' => trim($v),
@@ -334,7 +334,7 @@ class AcsfToolsBackgroundTasksCommands extends DrushCommands implements SiteAlia
 
     if ($logsFolder !== NULL) {
       $f = $acsfLogs::FINISH_LOG_MARKER;
-      $v = trim($this->AcsfExecute("cat ${logsFolder}${f} 2>/dev/null;", ""));
+      $v = trim($this->AcsfExecute("cat {$logsFolder}{$f} 2>/dev/null;", ""));
       $results[] = [
         'name' => 'Background task finished',
         'value' => empty($v) ? 'Not finished yet' : $v,
