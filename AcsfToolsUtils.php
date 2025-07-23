@@ -31,72 +31,28 @@ class AcsfToolsUtils extends DrushCommands {
     return $filepath;
   }
 
+  /**
+   * Utility function to check if the current environment is an ACSF platform.
+   *
+   * @return bool
+   */
+  public function isAcsfPlatform(): bool {
+    // Check if the current environment is an ACSF platform.
+    return function_exists('gardens_site_data_load_file');
+  }
+
 	/**
-   * Utility function to retrieve the list of sites in a given Factory.
+   * Utility function to retrieve the list of sites in a given factory.
    *
    * @return array|bool
 	 */
   public function getSites() {
-    $sites = FALSE;
-
-    // Exit early if the command is executed outside an ACSF server and no
-    // alias is provided.
-    if (isset($this->aliasRecord) && $this->aliasRecord->isLocal() && !$this->checkAcsfFunction('gardens_site_data_load_file')) {
-      return $sites;
+    // If ACSF platform.
+    if ($this->isAcsfPlatform()) {
+      return $this->getAcsfSites();
     }
 
-    $map = FALSE;
-    if ($this->checkAcsfFunction('gardens_site_data_load_file')) {
-      $map = gardens_site_data_load_file();
-    }
-    elseif ($this->aliasRecord && !$this->aliasRecord->isLocal() && $sites_json_filepath = $this->getLocalSitesJsonFilepath()) {
-      $alias_name = str_replace('@', '', $this->aliasRecord->name());
-
-      // Download the remote ACSF sites.json so we can process it locally.
-      if (!file_exists($sites_json_filepath)) {
-        $self = $this->siteAliasManager()->getSelf();
-        $process = Drush::drush($self, 'rsync', [$this->aliasRecord->name() . ':/mnt/files/' . $alias_name . '/files-private/sites.json',  $sites_json_filepath, '-y']);
-
-        try {
-          $process->mustRun();
-        }
-        catch (\Exception $e) {
-          return FALSE;
-        }
-      }
-
-      $json = @file_get_contents($sites_json_filepath);
-      $map = $json ? json_decode($json, TRUE) : FALSE;
-    }
-
-    // Look for list of sites and loop over it.
-    if ($map && isset($map['sites'])) {
-      // Acquire sites info.
-      $sites = array();
-      foreach ($map['sites'] as $domain => $site_details) {
-        if (!isset($sites[$site_details['name']])) {
-          $sites[$site_details['name']] = $site_details;
-        }
-
-        // Path domains need a trailing slash to be recognized as a drush alias.
-        if (FALSE !== strpos($domain, '/')) {
-          $domain = rtrim($domain, '/') . '/';
-        }
-
-        $sites[$site_details['name']]['domains'][] = $domain;
-
-        // Identify the site machine name from the acsitefactory.com domain.
-        $machine_name = [];
-        if (preg_match('/(.*)\..*\.acsitefactory\.com/', $domain, $machine_name)) {
-          $sites[$site_details['name']]['machine_name'] = $machine_name[1];
-        }
-      }
-    }
-    else {
-      $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
-    }
-
-    return $sites;
+    return $this->getMultiSiteSites();
   }
 
   /**
@@ -308,4 +264,117 @@ class AcsfToolsUtils extends DrushCommands {
     }
     return FALSE;
   }
+
+  /**
+   * Utility function to retrieve a list of sites in an ACSF Factory.
+   *
+   * @return array|bool
+   */
+  public function getAcsfSites(): array|bool {
+    $sites = FALSE;
+
+    // Exit early if the command is executed outside an ACSF server and no
+    // alias is provided.
+    if (isset($this->aliasRecord) && $this->aliasRecord->isLocal() && !$this->checkAcsfFunction('gardens_site_data_load_file')) {
+      return $sites;
+    }
+
+    $map = FALSE;
+    if ($this->checkAcsfFunction('gardens_site_data_load_file')) {
+      $map = gardens_site_data_load_file();
+    }
+    elseif ($this->aliasRecord && !$this->aliasRecord->isLocal() && $sites_json_filepath = $this->getLocalSitesJsonFilepath()) {
+      $alias_name = str_replace('@', '', $this->aliasRecord->name());
+
+      // Download the remote ACSF sites.json so we can process it locally.
+      if (!file_exists($sites_json_filepath)) {
+        $self = $this->siteAliasManager()->getSelf();
+        $process = Drush::drush($self, 'rsync', [$this->aliasRecord->name() . ':/mnt/files/' . $alias_name . '/files-private/sites.json',  $sites_json_filepath, '-y']);
+
+        try {
+          $process->mustRun();
+        }
+        catch (\Exception $e) {
+          return FALSE;
+        }
+      }
+
+      $json = @file_get_contents($sites_json_filepath);
+      $map = $json ? json_decode($json, TRUE) : FALSE;
+    }
+
+    // Look for list of sites and loop over it.
+    if ($map && isset($map['sites'])) {
+      // Acquire sites info.
+      $sites = array();
+      foreach ($map['sites'] as $domain => $site_details) {
+        if (!isset($sites[$site_details['name']])) {
+          $sites[$site_details['name']] = $site_details;
+        }
+
+        // Path domains need a trailing slash to be recognized as a drush alias.
+        if (FALSE !== strpos($domain, '/')) {
+          $domain = rtrim($domain, '/') . '/';
+        }
+
+        $sites[$site_details['name']]['domains'][] = $domain;
+
+        // Identify the site machine name from the acsitefactory.com domain.
+        $machine_name = [];
+        if (preg_match('/(.*)\..*\.acsitefactory\.com/', $domain, $machine_name)) {
+          $sites[$site_details['name']]['machine_name'] = $machine_name[1];
+        }
+      }
+    }
+    else {
+      $this->logger()->error("\nFailed to retrieve the list of sites of the factory.");
+    }
+
+    return $sites;
+  }
+
+  /**
+   * Utility function to retrieve a list of sites in a multi-site Drupal installation.
+   *
+   * @return array
+   * @throws \RuntimeException
+   */
+  public function getMultiSiteSites(): array {
+    // Read information from the sites.php file inside `/sites` directory.
+    // @todo: Change this to proper file where data is available.
+    $multisite_directory_path = DRUPAL_ROOT . '/sites';
+    $multisite_file_path = $multisite_directory_path.'/sites.php';
+
+    if (!is_file($multisite_file_path)) {
+      throw new \RuntimeException("Cannot find $multisite_file_path");
+    }
+
+    require $multisite_file_path;
+
+    if (!isset($sites) || !is_array($sites)) {
+      throw new \RuntimeException("Multi-site not defined in $multisite_file_path");
+    }
+
+    $site_details = [];
+    foreach ($sites as $site_name => $site_path) {
+      $site_details[$site_path] = [
+        'name' => $site_path,
+        'domains' => [
+          $site_name,
+        ],
+        'flags' => [],
+        'conf' => [
+          // These below array maintained same as ACSF sites.
+          'db_name' => $site_path, // Default to site name as DB name.
+          'site_id' => $site_path, // Default to site name as site ID.
+          'gardens_site_id' => $site_path, // Default to site name as gardens site ID.
+          'gardens_db_name' => $site_path, // Default to site name as gardens DB name.
+        ],
+        'machine_name' => $site_path, // Default to site name as machine name.
+      ];
+    }
+
+    return $site_details;
+  }
+
 }
