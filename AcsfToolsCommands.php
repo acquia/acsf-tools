@@ -905,7 +905,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
-        $prefix = explode('.', $domain)[0];
+        //$prefix = explode('.', $domain)[0];
+        // Using machine name as prefix and not domain because
+        // in the acsf-tools:dump command we are using machine name as prefix.
+        // This is to ensure that the dump file name is consistent with the
+        // one created by the acsf-tools:dump command.
+        $prefix = $details['machine_name'];
 
         $source_file = $source_folder . '/' . $prefix . '.sql';
 
