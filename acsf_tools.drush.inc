@@ -395,7 +395,41 @@ function _drush_acsf_tools_get_acsf_sites() {
 }
 
 function _drush_acsf_tools_get_multisite_sites() {
-  return Yaml::dump($array, 10, 2);
+  // Read information from the sites.php file inside `/sites` directory.
+  // @todo: Change this to proper file where data is available.
+  $multisite_directory_path = DRUPAL_ROOT . '/sites';
+  $multisite_file_path = $multisite_directory_path.'/sites.php';
+
+  if (!is_file($multisite_file_path)) {
+    throw new \RuntimeException("Cannot find $multisite_file_path");
+  }
+
+  require $multisite_file_path;
+
+  if (!isset($sites) || !is_array($sites)) {
+    throw new \RuntimeException("Multi-site not defined in $multisite_file_path");
+  }
+
+  $site_details = [];
+  foreach ($sites as $site_name => $site_path) {
+    $site_details[$site_path] = [
+      'name' => $site_path,
+      'domains' => [
+        $site_name,
+      ],
+      'flags' => [],
+      'conf' => [
+        // These below array maintained same as ACSF sites.
+        'db_name' => $site_path, // Default to site name as DB name.
+        'site_id' => $site_path, // Default to site name as site ID.
+        'gardens_site_id' => $site_path, // Default to site name as gardens site ID.
+        'gardens_db_name' => $site_path, // Default to site name as gardens DB name.
+     ],
+      'machine_name' => $site_path, // Default to site name as machine name.
+    ];
+  }
+
+  return $site_details;
 }
 
 /**
