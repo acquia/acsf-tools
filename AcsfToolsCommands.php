@@ -81,9 +81,9 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *
    */
   public function sitesList(array $options = [
-    'fields' => null,
-    'alias' => self::REQ,
-    'alias-refresh' => false,
+      'fields' => null,
+      'alias' => self::REQ,
+      'alias-refresh' => false,
   ]) {
     // Look for list of sites and loop over it.
     if ($sites = $this->getSites()) {
@@ -122,6 +122,17 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Get more details for all the sites of the factory.
    */
   public function sitesInfo() {
+    if (!$this->isAcsfPlatform()) {
+      $sites = $this->getMultiSiteSites();
+      $this->output->writeln("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
+
+      foreach ($sites as $site_info) {
+        $this->output->writeln($site_info['conf']['site_id'] ."\t\t" . $site_info['name'] . "\t\t" . $site_info['conf']['db_name'] . "\t\t" . $site_info['domains'][0]);
+      }
+
+      return;
+    }
+
     // Don't run locally.
     if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
       return FALSE;
@@ -239,14 +250,14 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @return RowsOfFields
    */
   public function ml($cmd, $command_args = '', $command_options = '', $options = [
-    'domain-pattern' => '',
-    'delay' => 0,
-    'total-time-limit' => 0,
-    'use-https' => 0,
-    'format' => self::FORMAT_PROGRESS,
-    'sites-filter' => self::REQ,
-    'alias' => self::REQ,
-    'alias-refresh' => false,
+      'domain-pattern' => '',
+      'delay' => 0,
+      'total-time-limit' => 0,
+      'use-https' => 0,
+      'format' => self::FORMAT_PROGRESS,
+      'sites-filter' => self::REQ,
+      'alias' => self::REQ,
+      'alias-refresh' => false,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
@@ -291,13 +302,13 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         $domain = $this->getDomain($details, $options);
 
         $row = [
-          'status' => NULL,
-          'result' => NULL,
-          'domain' => $domain,
-          'db_name' => $name,
-          'name' => $details['machine_name'],
-          'site_id' => $details['conf']['gardens_site_id'],
-          'execution' => $loop + 1,
+            'status' => NULL,
+            'result' => NULL,
+            'domain' => $domain,
+            'db_name' => $name,
+            'name' => $details['machine_name'],
+            'site_id' => $details['conf']['gardens_site_id'],
+            'execution' => $loop + 1,
         ];
 
         $process = $this->prepareCommand($domain, $details, $cmd, $drush_command_args, $drush_command_options);
@@ -427,13 +438,13 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    * @return RowsOfFields
    */
   public function mlc($cmd, $command_args = '', $command_options = '', $options = [
-    'domain-pattern' => '',
-    'use-https' => 0,
-    'concurrency-limit' => 0,
-    'format' => self::FORMAT_PROGRESS,
-    'sites-filter' => self::REQ,
-    'alias' => self::REQ,
-    'alias-refresh' => false,
+      'domain-pattern' => '',
+      'use-https' => 0,
+      'concurrency-limit' => 0,
+      'format' => self::FORMAT_PROGRESS,
+      'sites-filter' => self::REQ,
+      'alias' => self::REQ,
+      'alias-refresh' => false,
   ]) {
     // Exit early if there is no sites.
     $sites = $this->getSites();
@@ -475,12 +486,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
       $sites[$key]['domain'] = $this->getDomain($details, $options);
 
       $rows[$key] = [
-        'status' => NULL,
-        'result' => NULL,
-        'domain' => $sites[$key]['domain'],
-        'db_name' => $key,
-        'name' => $details['machine_name'],
-        'site_id' => $details['conf']['gardens_site_id'],
+          'status' => NULL,
+          'result' => NULL,
+          'domain' => $sites[$key]['domain'],
+          'db_name' => $key,
+          'name' => $details['machine_name'],
+          'site_id' => $details['conf']['gardens_site_id'],
       ];
 
       $process = $this->prepareCommand($sites[$key]['domain'], $details, $cmd, $drush_command_args, $drush_command_options);
@@ -723,10 +734,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     foreach ($sites as $site) {
       foreach ($site['domains'] as $domain) {
         $s[] = [
-          'name' => $site['machine_name'],
-          'site_id' => $site['conf']['gardens_site_id'],
-          'db_name' => $site['conf']['gardens_db_name'],
-          'domain' => $domain,
+            'name' => $site['machine_name'],
+            'site_id' => $site['conf']['gardens_site_id'],
+            'db_name' => $site['conf']['gardens_db_name'],
+            'domain' => $domain,
         ];
       }
     }
@@ -894,7 +905,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
-        $prefix = explode('.', $domain)[0];
+        //$prefix = explode('.', $domain)[0];
+        // Using machine name as prefix and not domain because
+        // in the acsf-tools:dump command we are using machine name as prefix.
+        // This is to ensure that the dump file name is consistent with the
+        // one created by the acsf-tools:dump command.
+        $prefix = $details['machine_name'];
 
         $source_file = $source_folder . '/' . $prefix . '.sql';
 
@@ -915,7 +931,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           if ($exit_code !== 0) {
             // Throw an exception with details about the failed process.
             $this->output()
-              ->writeln("\n=> The command gunzip failed to execute for the site $domain.");
+                ->writeln("\n=> The command gunzip failed to execute for the site $domain.");
             continue;
           }
 
@@ -932,7 +948,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         unset($options['gzip']);
         // Command Started.
         $this->output()
-          ->writeln("\n=> Restoring the Database on the Domain $domain.");
+            ->writeln("\n=> Restoring the Database on the Domain $domain.");
 
         $self = $this->siteAliasManager()->getSelf();
 
@@ -944,7 +960,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         if ($exit_code_sql_connect !== 0) {
           // $exit_code_sql_connect an exception with details about the failed process.
           $this->output()
-            ->writeln("\n=> The sql-connect command failed to execute for the site $domain.");
+              ->writeln("\n=> The sql-connect command failed to execute for the site $domain.");
           continue;
         }
 
@@ -957,7 +973,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           if ($sql_drop_process_exit_code !== 0) {
             // Throw an exception with details about the failed process.
             $this->output()
-              ->writeln("\n=> The sql-drop command failed to execute for the site $domain.");
+                ->writeln("\n=> The sql-drop command failed to execute for the site $domain.");
             continue;
           }
 
@@ -969,7 +985,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           if ($exit_code_shell !== 0) {
             // Throw an exception with details about the failed process.
             $this->output()
-              ->writeln("\n=> The command failed to execute for the site $domain.");
+                ->writeln("\n=> The command failed to execute for the site $domain.");
             continue;
           }
         }
@@ -985,14 +1001,14 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
           if ($exit_code_rm !== 0) {
             // Throw an exception with details about the failed process.
             $this->output()
-              ->writeln("\n=> The Shell rm command failed to execute for the site $domain.");
+                ->writeln("\n=> The Shell rm command failed to execute for the site $domain.");
             continue;
           }
         }
 
         // Command Completed.
         $this->output()
-          ->writeln("\n=> Dropping and restoring database on $domain Completed.");
+            ->writeln("\n=> Dropping and restoring database on $domain Completed.");
       }
     }
   }
