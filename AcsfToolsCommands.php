@@ -122,6 +122,17 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   Get more details for all the sites of the factory.
    */
   public function sitesInfo() {
+    if (!$this->isAcsfPlatform()) {
+      $sites = $this->getMultiSiteSites();
+      $this->output->writeln("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
+
+      foreach ($sites as $site_info) {
+        $this->output->writeln($site_info['conf']['site_id'] ."\t\t" . $site_info['name'] . "\t\t" . $site_info['conf']['db_name'] . "\t\t" . $site_info['domains'][0]);
+      }
+
+      return;
+    }
+
     // Don't run locally.
     if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
       return FALSE;
@@ -894,7 +905,12 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       foreach ($sites as $details) {
         $domain = $details['domains'][0];
-        $prefix = explode('.', $domain)[0];
+        //$prefix = explode('.', $domain)[0];
+        // Using machine name as prefix and not domain because
+        // in the acsf-tools:dump command we are using machine name as prefix.
+        // This is to ensure that the dump file name is consistent with the
+        // one created by the acsf-tools:dump command.
+        $prefix = $details['machine_name'];
 
         $source_file = $source_folder . '/' . $prefix . '.sql';
 
