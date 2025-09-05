@@ -71,6 +71,16 @@ class AcsfToolsCommands extends AcsfToolsUtils {
    * @aliases sfi,acsf-tools-info
    */
   public function sitesInfo() {
+    if (!$this->isAcsfPlatform()) {
+      $sites = $this->getMultiSiteSites();
+      $this->output->writeln("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
+
+      foreach ($sites as $site_info) {
+          $this->output->writeln($site_info['conf']['site_id'] ."\t\t" . $site_info['name'] . "\t\t" . $site_info['conf']['db_name'] . "\t\t" . $site_info['domains'][0]);
+      }
+
+      return;
+    }
 
     // Don't run locally.
     if (!$this->checkAcsfFunction('gardens_site_data_load_file')) {
