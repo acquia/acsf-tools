@@ -115,6 +115,17 @@ function drush_acsf_tools_list() {
  * Action callback for acsf-tools-info command.
  */
 function drush_acsf_tools_info() {
+  if (!is_this_acsf_platform()) {
+    $sites = _drush_acsf_tools_get_multisite_sites();
+    drush_print("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
+
+    foreach ($sites as $key => $site) {
+      drush_print("$key\t\t" . $site['conf']['gname'] . "\t\t" . $site['conf']['db_name'] . "\t\t" . $site['domains'][0]);
+    }
+
+    return;
+  }
+
   // Look for list of sites and loop over it.
   if (($map = gardens_site_data_load_file()) && isset($map['sites'])) {
     // Acquire sites info.
@@ -340,84 +351,13 @@ function drush_acsf_tools_restore() {
 }
 
 /**
- * Utility function to retrieve locally stored REST API connection info.
+ * Checking if we are on an ACSF platform.
  *
- * @return mixed
+ * @return bool
  */
-function acsf_tools_get_rest_config() {
-
-  $path = realpath(dirname(__FILE__));
-  $yaml = Yaml::parse(file_get_contents($path . '/acsf_tools_config.yml'));
-  if ($yaml === FALSE) {
-    $error  = 'acsf_tools_config.yml not found. Make sure to copy/rename ';
-    $error .= 'acsf_tools_config.default.yml and set the appropriate ';
-    $error .= 'connection info.';
-    drush_set_error(dt($error));
-  }
-
-  $config = new stdClass();
-  $config->site_id = $yaml['site_id'];
-  $config->username = $yaml['rest_api_user'];
-  $config->password = $yaml['rest_api_key'];
-  $config->prod_uri = $yaml['rest_factories']['prod'];
-  $config->test_uri = $yaml['rest_factories']['test'];
-  $config->dev_uri = $yaml['rest_factories']['dev'];
-  $config->root_domain = $yaml['root_domain'];
-  $config->subdomain_pattern = $yaml['subdomain_pattern'];
-  $config->prod_web = $yaml['prod_web'];
-  $config->dev_web = $yaml['dev_web'];
-
-  return $config;
-}
-
-/**
- * Utility function to retrieve the correct factory URI given an environment and desired path.
- *
- * @param $config
- * @param string $path
- * @param string $env
- * @return string
- */
-function acsf_tools_get_factory_url($config, $path = '', $env = 'prod') {
-
-  switch ($env) {
-    case 'dev':
-      $factory_url = $config->dev_uri . $path;
-      break;
-    case 'test':
-      $factory_url = $config->test_uri . $path;
-      break;
-    default:
-      $factory_url = $config->prod_uri . $path;
-      break;
-  }
-
-  return $factory_url;
-}
-
-/**
- * Helper script to abstract curl requests into a single function. Handles both
- * GET and POST, depending on whether $data is defined or not.
- *
- * @param $username
- * @param $password
- * @param $url
- * @param array $data
- * @return mixed
- */
-function acsf_tools_curl_wrapper($username, $password, $url, $data = array()) {
-
-  $ch = curl_init();
-  curl_setopt($ch, CURLOPT_URL, $url);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-  curl_setopt($ch, CURLOPT_USERPWD, "$username:$password");
-  if (!empty($data)) {
-    curl_setopt($ch, CURLOPT_POST, count($data));
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-  }
-  $result = json_decode(curl_exec($ch));
-  curl_close($ch);
-  return $result;
+function is_this_acsf_platform() {
+  // Check if the current environment is an ACSF platform.
+  return function_exists('gardens_site_data_load_file');
 }
 
 /**
@@ -426,6 +366,14 @@ function acsf_tools_curl_wrapper($username, $password, $url, $data = array()) {
  * @return array|bool
  */
 function _drush_acsf_tools_get_sites() {
+  if (is_this_acsf_platform()) {
+    return _drush_acsf_tools_get_acsf_sites();
+  }
+
+  return _drush_acsf_tools_get_multisite_sites();
+}
+
+function _drush_acsf_tools_get_acsf_sites() {
   $sites = FALSE;
 
   // Look for list of sites and loop over it.
@@ -444,6 +392,44 @@ function _drush_acsf_tools_get_sites() {
   }
 
   return $sites;
+}
+
+function _drush_acsf_tools_get_multisite_sites() {
+  // Read information from the sites.php file inside `/sites` directory.
+  // @todo: Change this to proper file where data is available.
+  $multisite_directory_path = DRUPAL_ROOT . '/sites';
+  $multisite_file_path = $multisite_directory_path.'/sites.php';
+
+  if (!is_file($multisite_file_path)) {
+    throw new \RuntimeException("Cannot find $multisite_file_path");
+  }
+
+  require $multisite_file_path;
+
+  if (!isset($sites) || !is_array($sites)) {
+    throw new \RuntimeException("Multi-site not defined in $multisite_file_path");
+  }
+
+  $site_details = [];
+  foreach ($sites as $site_name => $site_path) {
+    $site_details[$site_path] = [
+      'name' => $site_path,
+      'domains' => [
+        $site_name,
+      ],
+      'flags' => [],
+      'conf' => [
+        // These below array maintained same as ACSF sites.
+        'db_name' => $site_path, // Default to site name as DB name.
+        'site_id' => $site_path, // Default to site name as site ID.
+        'gardens_site_id' => $site_path, // Default to site name as gardens site ID.
+        'gardens_db_name' => $site_path, // Default to site name as gardens DB name.
+     ],
+      'machine_name' => $site_path, // Default to site name as machine name.
+    ];
+  }
+
+  return $site_details;
 }
 
 /**
