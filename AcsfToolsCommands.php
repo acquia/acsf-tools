@@ -95,7 +95,6 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
       foreach ($sites as $name => $details) {
         // Get site prefix from main domain.
-        //$prefix = explode('.', $details['domains'][0])[0];
         $prefix = $name;
         $this->output()->writeln($prefix);
 
