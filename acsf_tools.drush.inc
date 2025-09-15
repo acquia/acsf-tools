@@ -97,7 +97,7 @@ function drush_acsf_tools_list() {
 
     foreach ($sites as $name => $details) {
       // Get site prefix from main domain.
-      $prefix = explode('.', $details['domains'][0])[0];
+      $prefix = $name;
       drush_print($prefix);
 
       // Filter attributes.
@@ -412,6 +412,12 @@ function _drush_acsf_tools_get_multisite_sites() {
 
   $site_details = [];
   foreach ($sites as $site_name => $site_path) {
+    // If site path already exists, just add the domain to the list of domains.
+    if (!empty($site_details[$site_path])) {
+      $site_details[$site_path]['domains'][] = $site_name;
+      continue;
+    }
+
     $site_details[$site_path] = [
       'name' => $site_path,
       'domains' => [

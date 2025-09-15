@@ -55,4 +55,3 @@ factory.
 output. This is useful for disabling clearing cache, or disabling a single module for every site in your factory.
 * __acsf-tools-dump (sfdu):__ This command will create database backups for all sites in your factory.
 * __acsf-tools-restore (sfre):__ This command will restore database backups for all sites in your factory.
-* __acsf-tools-analyze (sfa):__ This command will extract information about modules, themes, entities, views from sites on a factory. It works with non-ACSF multisite installations as well.
