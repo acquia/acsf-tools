@@ -260,6 +260,12 @@ class AcsfToolsUtils extends DrushCommands {
 
     $site_details = [];
     foreach ($sites as $site_name => $site_path) {
+      // If site path already exists, just add the domain to the list of domains.
+      if (!empty($site_details[$site_path])) {
+        $site_details[$site_path]['domains'][] = $site_name;
+        continue;
+      }
+
       $site_details[$site_path] = [
         'name' => $site_path,
         'domains' => [
