@@ -9,6 +9,13 @@ platform. While Drush provides many utilities to aid generally in Drupal adminis
 particular adds a lot of complexity when managing multiple sites that live in a shared codebase. These tools merge
 ACSF multisites concepts with the ease of Drush-based administration.
 
+## Why a 2.x version:
+
+This project has been historicaly developed to ease running Drush commands on ACSF. ACSF is progressively
+replaced by [MEO](https://www.acquia.com/products/acquia-cloud-platform/multi-experience-operations) which manage multisites in a more standard manner. This version of acsf-tools has been adapted
+to work on both ACSF and MEO. It has also been simplified to only keep the possibility to run Drush commands
+at scale.
+
 ## Install and Configuration:
 
 #### Install
