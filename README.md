@@ -9,6 +9,13 @@ platform. While Drush provides many utilities to aid generally in Drupal adminis
 particular adds a lot of complexity when managing multiple sites that live in a shared codebase. These tools merge
 ACSF multisites concepts with the ease of Drush-based administration.
 
+## Why a 2.x version:
+
+This project has been historicaly developed to ease running Drush commands on ACSF. ACSF is progressively
+replaced by MEO which manage multisites in a more standard manner. This version of acsf-tools has been adapted
+to work on both ACSF and MEO. It has also been simplified to only keep the possibility to run Drush commands
+at scale.
+
 ## Install and Configuration:
 
 #### Install
@@ -17,25 +24,6 @@ For simpler projects with a single developer or very small teams, you can just c
 directory (e.g., ~/.drush).
 
 For larger teams, we recommend adding this project as a composer library, e.g. `composer require acquia/acsf-tools`. See [Using Composer to manage Drupal site dependencies](https://www.drupal.org/node/2718229) if you're new to Composer.
-
-#### Configuration
-
-Rename acsf_tools_config.default.yml as acsf_tools_config.yml and save it in the same directory. Replace the following
-values:
-
-* Site ID: This is the ID of your Factory. The easiest place to find this string is in the URL of your production factory. It is the subdomain immediately succeeding 'www' in the URL. E.g., for "www.demo.acquia-cc.com", the Site ID is 'demo'.
-* Rest API User: This is your Factory username, which is displayed in the header after logging into your Factory.
-* Rest API Key: This is your Factory REST API key. After logging into the Factory, click on your username, then the
-'API key' tab.
-* Rest Factories: This is an array of the URLs for your Prod, Test, and Dev factories. This should include a leading 'https://' as the protocol, and should _not_ include a trailing slash.
-* Subdomain pattern: An optional config, used when staging custom domains from production, that allows you to define
-a custom subdomain pattern. E.g., 'foo-dev.coolsites.com', where '{subdomain}-{env}' is the default.
-* Prod Web: The server ID for your main production server. This is found in your cloud.acquia.com dashboard, under the servers tab. E.g., 'web-1234'.
-* Dev Web: The server ID for your development server. This is found in your cloud.acquia.com dashboard, under the servers tab. E.g., 'web-1234'.
-
-**Note**: The acsf_tools_config file is deliberately ignored via .gitignore. The idea is that most of these utility
-scripts should only be ran by a platform admin with the appropriate permissions on their local machines. You should
-_not be committing API credentials to your repository_.
 
 ## Tools:
 

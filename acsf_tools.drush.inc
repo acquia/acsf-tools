@@ -4,8 +4,6 @@
  * Utility commands for ACSF sites.
  */
 
-use Symfony\Component\Yaml\Yaml;
-
 /**
  * Implements hook_drush_command().
  */
@@ -132,7 +130,7 @@ function drush_acsf_tools_info() {
     $sites = array();
     foreach ($map['sites'] as $domain => $site_details) {
       $conf = $site_details['conf'];
-      
+
       // Include settings file to get DB name. To save rescources, without bootsrtapping Drupal
       $settings_inc = "/var/www/site-php/{$_ENV['AH_SITE_GROUP']}.{$_ENV['AH_SITE_ENVIRONMENT']}/D7-{$_ENV['AH_SITE_ENVIRONMENT']}-" . $conf['gardens_db_name'] . "-settings.inc";
       $file = file_get_contents($settings_inc);
@@ -150,10 +148,10 @@ function drush_acsf_tools_info() {
       $sites[$conf['gardens_site_id']]['conf'] = array('db_name' => $db_name, 'gname' => $conf['gardens_db_name'], );
     }
   }
-  else {  
+  else {
     drush_log("\nFailed to retrieve the list of sites of the factory.", 'error');
   }
-  
+
   drush_print("\nID\t\tName\t\tDB Name\t\t\t\tDomain\n");
 
   foreach ($sites as $key => $site) {
