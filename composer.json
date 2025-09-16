@@ -22,8 +22,5 @@
   ],
   "license": "GPL-2.0+",
   "minimum-stability": "dev",
-  "prefer-stable": true,
-  "require": {
-    "symfony/yaml": "^3.0"
-  }
+  "prefer-stable": true
 }
