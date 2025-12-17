@@ -44,7 +44,7 @@ class AcsfToolsUtils extends DrushCommands {
   public function promptConfirm() {
 
     $this->output()->writeln(
-      dt('You are about to run a command on all the sites of your factory. 
+      dt('You are about to run a command on all the sites of your factory.
         Do you confirm you want to do that? If so, type \'yes\''));
     if (!$this->io()->confirm(dt('Do you want to continue?'))) {
       throw new UserAbortException();
@@ -209,6 +209,14 @@ class AcsfToolsUtils extends DrushCommands {
         if (!isset($sites) || !is_array($sites)) {
             throw new \RuntimeException("Multi-site not defined in $multisite_file_path");
         }
+
+        // Sort to ensure technical domains are first.
+        uksort(
+            $sites,
+            function (string $a, string $b): int {
+              return !str_ends_with($a, '.acquia-sites.com') <=> !str_ends_with($b, '.acquia-sites.com');
+            },
+        );
 
         $site_details = [];
         foreach ($sites as $site_name => $site_path) {
