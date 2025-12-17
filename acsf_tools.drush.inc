@@ -94,8 +94,7 @@ function drush_acsf_tools_list() {
     }
 
     foreach ($sites as $name => $details) {
-      // Get site prefix from main domain.
-      $prefix = $name;
+      $prefix = $details['machine_name'];
       drush_print($prefix);
 
       // Filter attributes.
@@ -382,7 +381,19 @@ function _drush_acsf_tools_get_acsf_sites() {
       if (!isset($sites[$site_details['name']])) {
         $sites[$site_details['name']] = $site_details;
       }
+
+      // Path domains need a trailing slash to be recognized as a drush alias.
+      if (FALSE !== strpos($domain, '/')) {
+        $domain = rtrim($domain, '/') . '/';
+      }
+
       $sites[$site_details['name']]['domains'][] = $domain;
+
+      // Identify the site machine name from the acsitefactory.com domain.
+      $machine_name = [];
+      if (preg_match('/(.*)\..*\.acsitefactory\.com/', $domain, $machine_name)) {
+        $sites[$site_details['name']]['machine_name'] = $machine_name[1];
+      }
     }
   }
   else {
