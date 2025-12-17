@@ -258,6 +258,14 @@ class AcsfToolsUtils extends DrushCommands {
       throw new \RuntimeException("Multi-site not defined in $multisite_file_path");
     }
 
+    // Sort to ensure technical domains are first.
+    uksort(
+      $sites,
+      function (string $a, string $b): int {
+        return !str_ends_with($a, '.acquia-sites.com') <=> !str_ends_with($b, '.acquia-sites.com');
+      },
+    );
+
     $site_details = [];
     foreach ($sites as $site_name => $site_path) {
       // If site path already exists, just add the domain to the list of domains.
