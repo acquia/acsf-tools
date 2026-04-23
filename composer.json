@@ -24,7 +24,7 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "php": ">=8.0",
+    "php": ">=8.1",
     "composer/installers": "^1.0 || ^2.0"
   },
   "autoload": {
@@ -37,15 +37,10 @@
     "installer-name": "acsf_tools",
     "installer-paths": {
       "drush/Commands/{$name}": [ "acquia/acsf-tools" ]
-    },
-    "drush": {
-      "services": {
-        "drush.services.yml": "^11"
-      }
     }
   },
   "require-dev": {
       "phpunit/phpunit": "^9.1",
-      "drush/drush": "^11"
+      "drush/drush": "^12"
   }
 }

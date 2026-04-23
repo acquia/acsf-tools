@@ -7,9 +7,12 @@
 namespace Drush\Commands\acsf_tools;
 
 use Consolidation\AnnotatedCommand\CommandData;
+use Consolidation\AnnotatedCommand\Hooks\HookManager;
 use Consolidation\Filter\FilterOutputData;
 use Consolidation\Filter\LogicalOpFactory;
 use Consolidation\OutputFormatters\StructuredData\RowsOfFields;
+use Drush\Attributes as CLI;
+use Drush\Boot\DrupalBootLevels;
 use Drush\Drush;
 use Drush\Exceptions\UserAbortException;
 use Consolidation\SiteAlias\SiteAliasManagerAwareInterface;
@@ -50,36 +53,18 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * List the sites of the factory.
    *
-   * @command acsf-tools:list
-   *
-   * @aliases sfl,acsf-tools-list
-   *
-   * @acsf-tools-alias
-   *
-   * @bootstrap site
-   *
    * @param array $options An associative array of options whose values come
    *   from cli, aliases, config, etc.
-   *
-   * @option fields
-   *   The list of fields to display (comma separated list).
-   * @option alias
-   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
-   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
-   * @option alias-refresh
-   *   Force the refresh of the local of the sites.json for the given alias.
-   *
-   * @usage drush acsf-tools-list
-   *   Get all details for all the sites of the factory.
-   * @usage drush acsf-tools-list --fields
-   *   Get prefix for all the sites of the factory.
-   * @usage drush acsf-tools-list --fields=name,domains
-   *   Get prefix, name and domains for all the sites of the factory.
-   * @usage drush acsf-tools-list --alias=sub.env
-   *   Download the sites.json file from the given alias before computing the result.
-   *   If you want to run the command on the servers, use the alias as usual: drush @sub.env acsf-tools-list.
-   *
    */
+  #[CLI\Command(name: 'acsf-tools:list', aliases: ['sfl', 'acsf-tools-list'])]
+  #[CLI\Option(name: 'fields', description: 'The list of fields to display (comma separated list)')]
+  #[CLI\Option(name: 'alias', description: 'The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.')]
+  #[CLI\Option(name: 'alias-refresh', description: 'Force the refresh of the local of the sites.json for the given alias.')]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\Usage(name: 'drush acsf-tools:list', description: 'Get all details for all the sites of the factory.')]
+  #[CLI\Usage(name: 'drush acsf-tools:list --fields', description: 'Get prefix for all the sites of the factory.')]
+  #[CLI\Usage(name: 'drush acsf-tools:list --fields=name,domains', description: 'Get name and domains for all the sites of the factory.')]
+  #[CLI\Usage(name: 'drush acsf-tools:list --alias=sub.env', description: 'Download the sites.json file from the given alias before computing the result. If you want to run the command on the servers, use the alias as usual: drush @sub.env acsf-tools:list.')]
   public function sitesList(array $options = [
     'fields' => null,
     'alias' => self::REQ,
@@ -110,16 +95,10 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
 
   /**
    * List details for each site in the Factory.
-   *
-   * @command acsf-tools:info
-   *
-   * @aliases sfi,acsf-tools-info
-   *
-   * @bootstrap site
-   *
-   * @usage drush acsf-tools-info
-   *   Get more details for all the sites of the factory.
    */
+  #[CLI\Command(name: 'acsf-tools:info', aliases: ['sfi', 'acsf-tools-info'])]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\Usage(name: 'drush acsf-tools:info', description: 'Get more details for all the sites of the factory.')]
   public function sitesInfo() {
     if (!$this->isAcsfPlatform()) {
       $sites = $this->getMultiSiteSites();
@@ -175,65 +154,18 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * Runs the passed drush command against all the sites of the factory (ml stands for multiple -l option).
    *
-   * @command acsf-tools:ml
-   *
-   * @aliases sfml,acsf-tools-ml
-   *
-   * @acsf-tools-alias
-   *
-   * @bootstrap site
-   *
-   * @params $cmd
+   * @param string $cmd
    *   The drush command you want to run against all sites in your factory.
-   * @params $command_args Optional.
+   * @param string $command_args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
-   * @params $command_options Optional.
+   * @param string $command_options Optional.
    *   A quoted space delimited set of options to pass to your drush command.
+   * @param array $options
+   *   An associative array of options whose values come from cli, aliases, config, etc.
    *
-   * @option domain-pattern
-   *   Pattern / keyword to check for choosing the domain for uri parameter.
-   * @option delay
-   *   Number of seconds to delay to run command between each site.
-   * @option total-time-limit
-   *   Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.
-   * @option use-https
-   *   Use secure urls for drush commands.
-   * @option sites-filter
-   *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
-   *   name, site_id, db_name, domain [default: name]
-   * @option alias
-   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
-   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
-   * @option alias-refresh
-   *   Force the refresh of the local of the sites.json for the given alias.
-   *
-   * @usage drush acsf-tools-ml st
-   *   Get output of `drush status` for all the sites.
-   * @usage drush acsf-tools-ml cget "'system.site' 'mail'"
-   *   Get value of site_mail variable for all the sites.
-   * @usage drush acsf-tools-ml upwd "'admin' 'password'"
-   *   Update user password.
-   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
-   *   Fetch config value in JSON format.
-   * @usage drush acsf-tools-ml cr --delay=10
-   *   Run cache clear on all sites with delay of 10 seconds between each site.
-   * @usage drush acsf-tools-ml cron --use-https=1
-   *   Run cron on all sites using secure url for URI.
-   * @usage drush acsf-tools-ml cron --domain-pattern=collection
-   *   Run cron on all sites using domain that contains the pattern "collection" for URI.
-   *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
-   *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
-   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" "'format=string'" --fields=name,domain,result --filter='result~=#(admin)#i' --format=table
-   *   Display a table with the name, domain and system.site.mail config value of the sites which
-   *   the config value contains "admin".
-   * @usage drush acsf-tools-ml cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
-   *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
-   * @usage drush acsf-tools-ml status --alias=sub.env
-   *   Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands.
-   *   If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools-ml status.
+   * @return RowsOfFields
    *
    * @table-style default
-   *
    * @field-labels
    *   status: Command status
    *   result: Command result
@@ -243,11 +175,33 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   site_id: Site ID
    *   execution: Execution #
    * @default-fields name,result
-   *
    * @filter-default-field result
-   *
-   * @return RowsOfFields
    */
+  #[CLI\Command(name: 'acsf-tools:ml', aliases: ['sfml', 'acsf-tools-ml'])]
+  #[CLI\Argument(name: 'cmd', description: 'The drush command to run on all sites. For example, "status" or "config-get".')]
+  #[CLI\Argument(name: 'command_args', description: 'A quoted, space delimited set of arguments to pass to your drush command.')]
+  #[CLI\Argument(name: 'command_options', description: 'A quoted space delimited set of options to pass to your drush command.')]
+  #[CLI\Option(name: 'domain-pattern', description: 'Pattern / keyword to check for choosing the domain for uri parameter.')]
+  #[CLI\Option(name: 'delay', description: 'Number of seconds to delay to run command between each site.')]
+  #[CLI\Option(name: 'total-time-limit', description: 'Total time limit in seconds. If this option is present, the given command will be executed multiple times within the given time limit.')]
+  #[CLI\Option(name: 'use-https', description: 'Use secure urls for drush commands.')]
+  #[CLI\Option(name: 'sites-filter', description: 'Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on: name, site_id, db_name, domain [default: name]')]
+  #[CLI\Option(name: 'alias', description: 'The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.')]
+  #[CLI\Option(name: 'alias-refresh', description: 'Force the refresh of the local of the sites.json for the given alias.')]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\FieldLabels(labels: ['status' => 'Command status', 'result' => 'Command result', 'domain' => 'Domain', 'db_name' => 'DB name', 'name' => 'Site name', 'site_id' => 'Site ID', 'execution' => 'Execution #'])]
+  #[CLI\DefaultTableFields(fields: ['name', 'result'])]
+  #[CLI\FilterDefaultField(field: 'result')]
+  #[CLI\Usage(name: 'drush acsf-tools:ml st', description: 'Get output of `drush status` for all the sites.')]
+  #[CLI\Usage(name: "drush acsf-tools:ml cget \"'system.site' 'mail'\"", description: 'Get value of site_mail variable for all the sites.')]
+  #[CLI\Usage(name: "drush acsf-tools:ml upwd \"'admin' 'password'\"", description: 'Update user password.')]
+  #[CLI\Usage(name: "drush acsf-tools:ml cget \"'system.site' 'mail'\" \"'format=json' 'interactive-mode'\"", description: 'Fetch config value in JSON format.')]
+  #[CLI\Usage(name: 'drush acsf-tools:ml cr --delay=10', description: 'Run cache clear on all sites with delay of 10 seconds between each site.')]
+  #[CLI\Usage(name: 'drush acsf-tools:ml cron --use-https=1', description: 'Run cron on all sites using secure url for URI.')]
+  #[CLI\Usage(name: 'drush acsf-tools:ml cron --domain-pattern=collection', description: 'Run cron on all sites using domain that contains the pattern "collection" for URI. By default it uses first custom domain. If no domain available it uses acsitefactory.com domain. From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.')]
+  #[CLI\Usage(name: "drush acsf-tools:ml cget \"'system.site' 'mail'\" \"'format=string'\" --fields=name,domain,result --filter='result~=#(admin)#i' --format=table", description: 'Display a table with the name, domain and system.site.mail config value of the sites which the config value contains "admin".')]
+  #[CLI\Usage(name: "drush acsf-tools:ml cget \"'system.site' 'mail'\" --sites-filter='name*=brandA||site_id=1234'", description: 'Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".')]
+  #[CLI\Usage(name: 'drush acsf-tools:ml status --alias=sub.env', description: 'Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands. If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools:ml status.')]
   public function ml($cmd, $command_args = '', $command_options = '', $options = [
     'domain-pattern' => '',
     'delay' => 0,
@@ -257,7 +211,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'sites-filter' => self::REQ,
     'alias' => self::REQ,
     'alias-refresh' => false,
-  ]) {
+  ]): RowsOfFields {
     // Exit early if there is no sites.
     $sites = $this->getSites();
     if (!$sites || empty($sites)) {
@@ -265,7 +219,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         $this->logger()->error('Impossible to fetch the list of sites. If you are not on an ACSF instance, use the --alias option.');
       }
 
-      return;
+      return new RowsOfFields([]);
     }
 
     // Avoid warning due to inconsistent parameters.
@@ -369,60 +323,18 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * Runs the passed drush command against all the sites of the factory (mlc stands for ml + concurrent).
    *
-   * @command acsf-tools:mlc
-   *
-   * @aliases sfmlc,acsf-tools-mlc
-   *
-   * @acsf-tools-alias
-   *
-   * @bootstrap site
-   *
-   * @params $cmd
+   * @param string $cmd
    *   The drush command you want to run against all sites in your factory.
-   * @params $command_args Optional.
+   * @param string $command_args Optional.
    *   A quoted, space delimited set of arguments to pass to your drush command.
-   * @params $command_options Optional.
+   * @param string $command_options Optional.
    *   A quoted space delimited set of options to pass to your drush command.
+   * @param array $options
+   *   An associative array of options whose values come from cli, aliases, config, etc.
    *
-   * @option domain-pattern
-   *   Pattern / keyword to check for choosing the domain for uri parameter.
-   * @option use-https
-   *   Use secure urls for drush commands.
-   * @option concurrency-limit
-   *   The maximum number of commands to run in parallel. 0 for no limit.
-   * @option sites-filter
-   *   Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on:
-   *   name, site_id, db_name, domain [default: name]
-   * @option alias
-   *   The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate
-   *   the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.
-   * @option alias-refresh
-   *   Force the refresh of the local of the sites.json for the given alias.
-   *
-   * @usage drush acsf-tools-mlc st
-   *   Get output of `drush status` for all the sites.
-   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'"
-   *   Get value of site_mail variable for all the sites.
-   * @usage drush acsf-tools-mlc upwd "'admin' 'password'"
-   *   Update user password.
-   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" "'format=json' 'interactive-mode'"
-   *   Fetch config value in JSON format.
-   * @usage drush acsf-tools-mlc cron --use-https=1
-   *   Run cron on all sites using secure url for URI.
-   * @usage drush acsf-tools-mlc cron --domain-pattern=collection
-   *   Run cron on all sites using domain that contains the pattern "collection" for URI.
-   *   By default it uses first custom domain. If no domain available it uses acsitefactory.com domain.
-   *   From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.
-   * @usage drush acsf-tools-mlc cr --concurrency-limit=5
-   *   Run cache clear on all the sites with a limit of 5 concurrent commands.
-   * @usage drush acsf-tools-mlc cget "'system.site' 'mail'" --sites-filter='name*=brandA||site_id=1234'
-   *   Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".
-   * @usage drush acsf-tools-ml status --alias=sub.env
-   *   Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands.
-   *   If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools-ml status.
+   * @return RowsOfFields
    *
    * @table-style default
-   *
    * @field-labels
    *   status: Command status
    *   result: Command result
@@ -431,11 +343,31 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    *   name: Site name
    *   site_id: Site ID
    * @default-fields name,result
-   *
    * @filter-default-field result
-   *
-   * @return RowsOfFields
    */
+  #[CLI\Command(name: 'acsf-tools:mlc', aliases: ['sfmlc', 'acsf-tools-mlc'])]
+  #[CLI\Argument(name: 'cmd', description: 'The drush command to run on all sites. For example, "status" or "config-get".')]
+  #[CLI\Argument(name: 'command_args', description: 'A quoted, space delimited set of arguments to pass to your drush command.')]
+  #[CLI\Argument(name: 'command_options', description: 'A quoted space delimited set of options to pass to your drush command.')]
+  #[CLI\Option(name: 'domain-pattern', description: 'Pattern / keyword to check for choosing the domain for uri parameter.')]
+  #[CLI\Option(name: 'use-https', description: 'Use secure urls for drush commands.')]
+  #[CLI\Option(name: 'concurrency-limit', description: 'The maximum number of commands to run in parallel. 0 for no limit.')]
+  #[CLI\Option(name: 'sites-filter', description: 'Filter the sites which the command will be executed on. It uses the same format as the --filter option. Possible fields to filter on: name, site_id, db_name, domain [default: name]')]
+  #[CLI\Option(name: 'alias', description: 'The drush alias to execute the given command on. It will download a local copy of the remote sites.json file and use it to generate the drush commands to be executed using the given alias. Useful when acsf-tools is not installed on the remote factory.')]
+  #[CLI\Option(name: 'alias-refresh', description: 'Force the refresh of the local of the sites.json for the given alias.')]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\FieldLabels(labels: ['status' => 'Command status', 'result' => 'Command result', 'domain' => 'Domain', 'db_name' => 'DB name', 'name' => 'Site name', 'site_id' => 'Site ID'])]
+  #[CLI\DefaultTableFields(fields: ['name', 'result'])]
+  #[CLI\FilterDefaultField(field: 'result')]
+  #[CLI\Usage(name: 'drush acsf-tools:mlc st', description: 'Get output of `drush status` for all the sites.')]
+  #[CLI\Usage(name: "drush acsf-tools:mlc cget \"'system.site' 'mail'\"", description: 'Get value of site_mail variable for all the sites.')]
+  #[CLI\Usage(name: "drush acsf-tools:mlc upwd \"'admin' 'password'\"", description: 'Update user password.')]
+  #[CLI\Usage(name: "drush acsf-tools:mlc cget \"'system.site' 'mail'\" \"'format=json' 'interactive-mode'\"", description: 'Fetch config value in JSON format.')]
+  #[CLI\Usage(name: 'drush acsf-tools:mlc cron --use-https=1', description: 'Run cron on all sites using secure url for URI.')]
+  #[CLI\Usage(name: 'drush acsf-tools:mlc cron --domain-pattern=collection', description: 'Run cron on all sites using domain that contains the pattern "collection" for URI. By default it uses first custom domain. If no domain available it uses acsitefactory.com domain. From abc.collection.xyz.com and abc.xyz.acsitefactory.com it will choose abc.collection.xyz.com domain.')]
+  #[CLI\Usage(name: 'drush acsf-tools:mlc cr --concurrency-limit=5', description: 'Run cache clear on all the sites with a limit of 5 concurrent commands.')]
+  #[CLI\Usage(name: "drush acsf-tools:mlc cget \"'system.site' 'mail'\" --sites-filter='name*=brandA||site_id=1234'", description: 'Fetch the system.site.mail config on the sites which the name contains "brandA" or the site id is "1234".')]
+  #[CLI\Usage(name: 'drush acsf-tools:mlc status --alias=sub.env', description: 'Download the sites.json file from the given alias and run the drush @sub.env status --uri=name.sub.acsitefactory.com commands. If you want to run the commands on the servers, use the alias as usual: drush @sub.env acsf-tools:mlc status.')]
   public function mlc($cmd, $command_args = '', $command_options = '', $options = [
     'domain-pattern' => '',
     'use-https' => 0,
@@ -444,7 +376,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
     'sites-filter' => self::REQ,
     'alias' => self::REQ,
     'alias-refresh' => false,
-  ]) {
+  ]): RowsOfFields {
     // Exit early if there is no sites.
     $sites = $this->getSites();
     if (!$sites || empty($sites)) {
@@ -452,7 +384,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
         $this->logger()->error('Impossible to fetch the list of sites. If you are not on an ACSF instance, use the --alias option.');
       }
 
-      return;
+      return new RowsOfFields([]);
     }
 
     // Avoid warning due to inconsistent parameters.
@@ -562,7 +494,7 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
    */
   protected function getCommandArgs($command_args) {
     // Drush 9 limits the number of arguments a command can receive. To handle drush commands with dynamic arguments, we try to receive all arguments in a single variable $args & try to split it into individual arguments.
-    // Commands with multiple arguments will need to be invoked as drush acsf-tools-ml upwd "'admin' 'password'"
+    // Commands with multiple arguments will need to be invoked as drush acsf-tools:ml upwd "'admin' 'password'"
     $command_args = preg_split("/'\s'/", $command_args);
 
     // Trim off "'" that will stay back after preg split with 1st & the last arg.
@@ -639,20 +571,46 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   }
 
   /**
-   * Validate the options related to alias management.
-   *
-   * @hook validate @acsf-tools-alias
+   * Validate the options related to alias management for list command.
    *
    * @throws \Exception
    */
-  public function aliasValidate(CommandData $commandData) {
-    // Validate the given alias is known alias.
+  #[CLI\Hook(type: HookManager::ARGUMENT_VALIDATOR, target: 'acsf-tools:list')]
+  public function aliasValidateList(CommandData $commandData) {
+    $this->aliasValidateCommon($commandData);
+  }
+
+  /**
+   * Validate the options related to alias management for ml command.
+   *
+   * @throws \Exception
+   */
+  #[CLI\Hook(type: HookManager::ARGUMENT_VALIDATOR, target: 'acsf-tools:ml')]
+  public function aliasValidateMl(CommandData $commandData) {
+    $this->aliasValidateCommon($commandData);
+  }
+
+  /**
+   * Validate the options related to alias management for mlc command.
+   *
+   * @throws \Exception
+   */
+  #[CLI\Hook(type: HookManager::ARGUMENT_VALIDATOR, target: 'acsf-tools:mlc')]
+  public function aliasValidateMlc(CommandData $commandData) {
+    $this->aliasValidateCommon($commandData);
+  }
+
+  /**
+   * Common validation for alias options.
+   *
+   * @throws \Exception
+   */
+  private function aliasValidateCommon(CommandData $commandData) {
     $alias = $commandData->input()->getOption('alias');
     if ($alias && !$this->siteAliasManager()->getAlias($alias)) {
       throw new \Exception(dt('The alias !alias is not a valid drush alias. Use `drush site:alias` to list all alias records known to drush.', ['!alias' => $alias]));
     }
 
-    // Avoid using --alias-refresh option without --alias option.
     $alias_refresh = $commandData->input()->getOption('alias-refresh');
     if (!$alias && $alias_refresh) {
       throw new \Exception('The option --alias-refresh cannot be used without --alias option.');
@@ -660,21 +618,40 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   }
 
   /**
-   * Prepare the alias if given to the command.
-   *
-   * @hook pre-command @acsf-tools-alias
+   * Prepare the alias for list command.
    */
-  public function aliasPrepare(CommandData $commandData) {
-    // Default to local alias.
+  #[CLI\Hook(type: HookManager::PRE_COMMAND_HOOK, target: 'acsf-tools:list')]
+  public function aliasPrepareList(CommandData $commandData) {
+    $this->aliasPrepareCommon($commandData);
+  }
+
+  /**
+   * Prepare the alias for ml command.
+   */
+  #[CLI\Hook(type: HookManager::PRE_COMMAND_HOOK, target: 'acsf-tools:ml')]
+  public function aliasPrepareMl(CommandData $commandData) {
+    $this->aliasPrepareCommon($commandData);
+  }
+
+  /**
+   * Prepare the alias for mlc command.
+   */
+  #[CLI\Hook(type: HookManager::PRE_COMMAND_HOOK, target: 'acsf-tools:mlc')]
+  public function aliasPrepareMlc(CommandData $commandData) {
+    $this->aliasPrepareCommon($commandData);
+  }
+
+  /**
+   * Common preparation for alias.
+   */
+  private function aliasPrepareCommon(CommandData $commandData) {
     $this->aliasRecord = $this->siteAliasManager()->getSelf();
 
-    // If provided and validated, use the given alias as the default.
     $alias = $commandData->input()->getOption('alias');
     if ($alias) {
       $this->aliasRecord = $this->siteAliasManager()->getAlias($alias);
     }
 
-    // If requested, delete the local copy of sites.json for the given alias.
     $alias_refresh = $commandData->input()->getOption('alias-refresh');
     if ($alias_refresh) {
       $filepath = $this->getLocalSitesJsonFilepath();
@@ -755,27 +732,17 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * Create a database backup for each site of the factory.
    *
-   * @command acsf-tools:dump
-   *
-   * @aliases sfdu,acsf-tools-dump
-   *
-   * @bootstrap site
-   *
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
-   * @option result-folder
-   *   The folder in which the backups will be written. Defaults to ~/drush-backups/[YYYYmmdd-hhmm].
-   * @option gzip
-   *   Compress the backups into a zip file.
-   *
-   * @usage drush acsf-tools-dump
-   *   Create database backups for the sites of the factory. Default result folder (~/drush-backups/[YYYYmmdd-hhmm])  will be used.
-   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/1.0.9
-   *   Create database backups for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.
-   * @usage drush acsf-tools-dump --result-folder=/home/project/backup/20160617 --gzip
-   *   Same as above but using options of sql-dump command.
    *
    * @throws UserAbortException
    */
+  #[CLI\Command(name: 'acsf-tools:dump', aliases: ['sfdu', 'acsf-tools-dump'])]
+  #[CLI\Option(name: 'result-folder', description: 'The folder in which the backups will be written. Defaults to ~/drush-backups/[YYYYmmdd-hhmm].')]
+  #[CLI\Option(name: 'gzip', description: 'Compress the backups into a zip file.')]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\Usage(name: 'drush acsf-tools:dump', description: 'Create database backups for the sites of the factory. Default result folder (~/drush-backups/[YYYYmmdd-hhmm]) will be used.')]
+  #[CLI\Usage(name: 'drush acsf-tools:dump --result-folder=/home/project/backup/1.0.9', description: 'Create database backups for the sites of the factory and store them in the specified folder. If folder does not exist the command will try to create it.')]
+  #[CLI\Usage(name: 'drush acsf-tools:dump --result-folder=/home/project/backup/20160617 --gzip', description: 'Same as above but using options of sql-dump command.')]
   public function dbDump(array $options = ['result-folder' => NULL, 'gzip' => FALSE]) {
 
     // Use the default result folder if not provided.
@@ -857,30 +824,19 @@ class AcsfToolsCommands extends AcsfToolsUtils implements SiteAliasManagerAwareI
   /**
    * Make a DB dump for each site of the factory.
    *
-   * @command acsf-tools:restore
-   *
-   * @aliases sfr,acsf-tools-restore
-   *
-   * @bootstrap site
-   *
    * @param array $options An associative array of options whose values come from cli, aliases, config, etc.
-   *
-   * @option source-folder
-   *   The folder in which the dumps are stored. Defaults to ~/drush-backups.
-   * @option gzip
-   *   Restore from a zipped dump.
-   *
-   * @usage drush acsf-tools-restore
-   *   Restore DB dumps for the sites of the factory. Default backup folder will be used.
-   * @usage drush acsf-tools-restore --source-folder=/home/project/backup/20160617
-   *   Restore DB dumps for factory sites that are stored in the specified folder.
-   * @usage drush acsf-tools-restore --source-folder=/home/project/backup/20160617 --gzip
-   *   Restore compressed DB dumps for factory sites that are stored in the specified folder.
    *
    * @return bool|void
    *
    * @throws UserAbortException
    */
+  #[CLI\Command(name: 'acsf-tools:restore', aliases: ['sfr', 'acsf-tools-restore'])]
+  #[CLI\Option(name: 'source-folder', description: 'The folder in which the dumps are stored. Defaults to ~/drush-backups.')]
+  #[CLI\Option(name: 'gzip', description: 'Restore from a zipped dump.')]
+  #[CLI\Bootstrap(level: DrupalBootLevels::SITE)]
+  #[CLI\Usage(name: 'drush acsf-tools:restore', description: 'Restore DB dumps for the sites of the factory. Default backup folder will be used.')]
+  #[CLI\Usage(name: 'drush acsf-tools:restore --source-folder=/home/project/backup/20160617', description: 'Restore DB dumps for factory sites that are stored in the specified folder.')]
+  #[CLI\Usage(name: 'drush acsf-tools:restore --source-folder=/home/project/backup/20160617 --gzip', description: 'Restore compressed DB dumps for factory sites that are stored in the specified folder.')]
   function dbRestore(array $options = ['source-folder' => '~/drush-backups', 'gzip' => FALSE]) {
 
     // Ask for confirmation before running the command.
