@@ -27,9 +27,9 @@ For larger teams, we recommend adding this project as a composer library, e.g. `
 
 _If you upgraded Drush to 11.x then use acsf-tools 11.x, the easiest method is to run `composer remove acquia/acsf-tools` and then `composer require acquia/acsf-tools:11.x-dev`. This will ensure no cruft remains from the 10.x version or earlier versions. Make a backup of your local acsf_tools_config.yml before running `composer remove`._
 
-#### Drush 11 Installs
+#### Drush 12 Installs
 
-Using this branch requires Drush 11.
+Using this branch requires Drush 12.
 
 _Also, there are some additional manual install steps while some upstream packages ([BLT](https://github.com/acquia/blt/tree/11.x), [Composer-installers](https://github.com/composer/installers)) adapt to Drush 11:_
 
